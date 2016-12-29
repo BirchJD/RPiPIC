@@ -1,0 +1,177 @@
+gplink-0.13.7 beta
+Copyright (c) 1998-2005 gputils project
+Listing File Generated: 12-28-2016  23:05:37
+ 
+ 
+Address  Value    Disassembly              Source
+-------  -----    -----------              ------
+                                                             LIST     P = P12F683
+                                           
+                                                             INCLUDE  "../INCLUDE/P12F683.INC"
+                                                   LIST
+                                           
+                                           ;==========================================================================
+                                           ;  MPASM PIC12F683 processor include
+                                           ; 
+                                           ;  (c) Copyright 1999-2011 Microchip Technology, All rights reserved
+                                           ;==========================================================================
+                                           
+                                                   NOLIST
+                                           
+                                                             __CONFIG _INTRC_OSC_NOCLKOUT & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
+                                           
+                                           
+                                           
+                                           ;/*************/
+                                           ;/* Constants */
+                                           ;/*************/
+                                           GPIO_LED          EQU      0x04                 ; GPIO pin allocated for driving an LED.
+                                           GPIO_SWITCH       EQU      0x08                 ; GPIO pin allocated for driving an LED.
+                                           
+                                           DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
+                                           
+                                           
+                                           
+                                           ;/******************/
+                                           ;/* RAM Registers. */
+                                           ;/******************/
+                                           CBLOCK            0x20
+                                                             FLASH_COUNT                   ; Keep track of howmany LED inversions remain.
+                                           ENDC
+                                           
+                                           
+                                           
+                                                             CODE
+                                           
+                                           ;/**********************************/
+                                           ;/* Reset program location vector. */
+                                           ;/**********************************/
+                                                             ORG      0x0000
+                                           
+000000   0183     clrf	0x3                                   CLRF     STATUS               ; Clear the status register and select register bank 0
+000001   1283     bcf	0x3, 0x5                               BCF      STATUS, RP0          ; Select Register bank 0
+000002   2900     goto	0x100                                 GOTO     INIT
+                                           
+                                           
+                                           
+                                           ;/*************************************/
+                                           ;/* Interupt program location vector. */
+                                           ;/*************************************/
+                                                             ORG      0x0004
+                                           
+000004   2805     goto	0x5                                   GOTO     INT_HANDLE
+                                           
+                                           
+                                           
+000005   1283     bcf	0x3, 0x5             INT_HANDLE        BCF      STATUS, RP0          ; Select Register bank 0
+000006   1c0c     btfss	0xc, 0                               BTFSS    PIR1, TMR1IF         ; Did a TIMER1 interupt trigger?
+000007   280f     goto	0xf                                   GOTO     INT_TIMER1_END
+000008   0820     movf	0x20, w                               MOVFW    FLASH_COUNT          ; Is a flashing process active?
+000009   39ff     andlw	0xff                                 ANDLW    0xFF
+00000a   1903     btfsc	0x3, 0x2                             BTFSC    STATUS, Z
+00000b   280f     goto	0xf                                   GOTO     INT_TIMER1_END
+00000c   30fd     movlw	0xfd                                 MOVLW    ~GP2                 ; Invert LED.
+00000d   0685     xorwf	0x5, f                               XORWF    GPIO
+00000e   03a0     decf	0x20, f                               DECF     FLASH_COUNT          ; Reduce flash count.
+                                           
+00000f   100c     bcf	0xc, 0               INT_TIMER1_END:   BCF      PIR1, TMR1IF
+                                           
+000010   1c0b     btfss	0xb, 0                               BTFSS    INTCON, GPIF         ; Did an input pin interupt trigger?
+000011   281c     goto	0x1c                                  GOTO     INT_GPI_END
+000012   0820     movf	0x20, w                               MOVFW    FLASH_COUNT          ; Is a flashing process active?
+000013   39ff     andlw	0xff                                 ANDLW    0xFF
+000014   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+000015   281c     goto	0x1c                                  GOTO     INT_GPI_END
+000016   3000     movlw	0                                    MOVLW    0x00                 ; Configure full TIMER1 period.
+000017   008e     movwf	0xe                                  MOVWF    TMR1L
+000018   3000     movlw	0                                    MOVLW    0x00
+000019   008f     movwf	0xf                                  MOVWF    TMR1H
+00001a   3006     movlw	0x6                                  MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
+00001b   00a0     movwf	0x20                                 MOVWF    FLASH_COUNT
+                                           
+00001c   100b     bcf	0xb, 0               INT_GPI_END:      BCF      INTCON, GPIF
+00001d   0009     retfie                                     RETFIE
+                                           
+                                           
+                                           
+                                           ;/*******************************/
+                                           ;/* Initialise microcontroller. */
+                                           ;/*******************************/
+                                                             ORG      0x0100
+                                           
+000100   0185     clrf	0x5                 INIT:             CLRF     GPIO
+000101   018c     clrf	0xc                                   CLRF     PIR1
+000102   3007     movlw	0x7                                  MOVLW    0x07                 ; All GPIO as digital IO.
+000103   0099     movwf	0x19                                 MOVWF    CMCON0
+000104   303d     movlw	0x3d                                 MOVLW    0x3D                 ; Configure Timer1.
+000105   0090     movwf	0x10                                 MOVWF    T1CON
+000106   1683     bsf	0x3, 0x5                               BSF      STATUS, RP0          ; Select Register bank 1
+000107   0195     clrf	0x15                                  CLRF     WPU
+000108   019f     clrf	0x1f                                  CLRF     ANSEL
+000109   300f     movlw	0xf                                  MOVLW    0x0F                 ; Prescale watchdog timer.
+00010a   0081     movwf	0x1                                  MOVWF    OPTION_REG
+00010b   30fb     movlw	0xfb                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+00010c   0085     movwf	0x5                                  MOVWF    TRISIO
+00010d   30c8     movlw	0xc8                                 MOVLW    0xC8                 ; Configure GPIO input.
+00010e   008b     movwf	0xb                                  MOVWF    INTCON
+00010f   3008     movlw	0x8                                  MOVLW    GPIO_SWITCH          ; Configure GPIO input.
+000110   0096     movwf	0x16                                 MOVWF    IOC
+000111   3001     movlw	0x1                                  MOVLW    0x01                 ; Configure Timer1.
+000112   008c     movwf	0xc                                  MOVWF    PIE1
+                                           
+000113   1283     bcf	0x3, 0x5                               BCF      STATUS, RP0          ; Select Register bank 0
+000114   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+                                           
+000115   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+000116   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+000117   0820     movf	0x20, w                               MOVFW    FLASH_COUNT          ; Is a flashing process active?
+000118   39ff     andlw	0xff                                 ANDLW    0xFF
+000119   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+00011a   2916     goto	0x116                                 GOTO     ACTIVE_LOOP
+00011b   2915     goto	0x115                                 GOTO     LOOP                 ; Infinite main loop, waiting for interupts.
+                                           
+                                           
+                                           
+                                           ;/*********************************/
+                                           ;/* Write data to data area test. */
+                                           ;/*********************************/
+                                                             ORG      0x2000 ; Area for PIC ID - compiler will complain.
+                                           
+002000   0055     dw	0x55  ;unknown opcode                   DE       0x55, 0x55, 0x55, 0x55
+002001   0055     dw	0x55  ;unknown opcode 
+002002   0055     dw	0x55  ;unknown opcode 
+002003   0055     dw	0x55  ;unknown opcode 
+                                           
+                                           
+                                                             ORG      0x2100
+                                           
+002100   00aa     movwf	0x2a                                 DE       0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
+002101   00bb     movwf	0x3b               
+002102   00cc     movwf	0x4c               
+002103   00dd     movwf	0x5d               
+002104   00ee     movwf	0x6e               
+002105   00ff     movwf	0x7f               
+                                           
+                                           
+                                                             ORG      0x2110
+                                           
+002110   0000     nop                                        DE       0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07
+002111   0001     dw	0x1  ;unknown opcode  
+002112   0002     dw	0x2  ;unknown opcode  
+002113   0003     dw	0x3  ;unknown opcode  
+002114   0004     dw	0x4  ;unknown opcode  
+002115   0005     dw	0x5  ;unknown opcode  
+002116   0006     dw	0x6  ;unknown opcode  
+002117   0007     dw	0x7  ;unknown opcode  
+002118   0008     return                                     DE       0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F
+002119   0009     retfie                   
+00211a   000a     dw	0xa  ;unknown opcode  
+00211b   000b     dw	0xb  ;unknown opcode  
+00211c   000c     dw	0xc  ;unknown opcode  
+00211d   000d     dw	0xd  ;unknown opcode  
+00211e   000e     dw	0xe  ;unknown opcode  
+00211f   000f     dw	0xf  ;unknown opcode  
+                                           
+                                           
+                                                             END
+                                           
