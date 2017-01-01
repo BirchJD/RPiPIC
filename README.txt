@@ -25,7 +25,7 @@ Link a PIC Microchip object file and produce a Intel HEX formatted object file.
 gplink -o [FILE_NAME].hex [FILE_NAME].o
 
 Simulate a compiled PIC Microchip code file for debugging.
-gpsim -s PIC12F675.cod
+gpsim -s [FILE_NAME].cod
 
 PIC Microchip disassembler.
 gpdasm
@@ -46,7 +46,7 @@ gplib
 
 PIC Microchip Hardware Requirements
 ===================================
-VPP 13.0V < 13.25V 100 mA
+VPP 12.0V 100 mA
 VDD = 2.0V < 6.5V += 0.25V 40 mA
 
 

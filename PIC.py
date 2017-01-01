@@ -52,10 +52,12 @@ SLEEP_DATA = 1 / 1000000.0
 # Target 100uS program pulse width.
 # NOTE: This is for Flash type memory on older devices, using program pulses.
 PIC_DELAY_FLASH_PROGRAM = 100 / 1000000.0
-# Target 5mS to erase EEPROM memory location.
-PIC_DELAY_EEPROM_ERASE = 5 / 1000.0
+# Target 6mS to erase EEPROM memory location.
+PIC_DELAY_EEPROM_ERASE = 6 / 1000.0
 # Target 8mS to write EEPROM memory location.
 PIC_DELAY_EEPROM_PROGRAM = 8 / 1000.0
+# Target 5uS power on program mode.
+PIC_DELAY_POWER_PROGRAM = 5 / 1000000.0
 
 
 
@@ -109,26 +111,16 @@ PIC_CMD_BEGIN_PROG_ONLY  = 0x18
 #/***********************/
 #/* LOW LEVEL FUNCTIONS */
 #/***********************/
-def ClockPeriod():
-   time.sleep(SLEEP_CLOCK)
-
-
-
-def DataPeriod():
-   time.sleep(SLEEP_DATA)
-
-
-
 def DataRead(BitCount):
    RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_1)
-   DataPeriod()
+   time.sleep(SLEEP_DATA)
 
    PicDataWord = 0
    for Count in range(BitCount):
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
-      ClockPeriod()
+      time.sleep(SLEEP_CLOCK)
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
-      ClockPeriod()
+      time.sleep(SLEEP_CLOCK)
 
       if RPi.GPIO.input(GPIO_DATA_IN_PIN) == PIC_IN_DATA_1:
          PicDataWord = PicDataWord | int(math.pow(2, Count))
@@ -140,8 +132,6 @@ def DataRead(BitCount):
 
 
 def DataWrite(PicDataWord, BitCount):
-   DataPeriod()
-
    if BitCount == PIC_DATA_BIT_COUNT:
       PicDataWord = PicDataWord * 2
 
@@ -153,9 +143,9 @@ def DataWrite(PicDataWord, BitCount):
          RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_1)
 
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
-      ClockPeriod()
+      time.sleep(SLEEP_CLOCK)
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
-      ClockPeriod()
+      time.sleep(SLEEP_CLOCK)
 
       PicDataWord = PicDataWord / 2
 
@@ -163,18 +153,21 @@ def DataWrite(PicDataWord, BitCount):
 
 def CmdLoadConfig(PicDataWord):
    DataWrite(PIC_CMD_LOAD_CONFIG, PIC_CMD_BIT_COUNT)
+   time.sleep(SLEEP_DATA)
    DataWrite(PicDataWord, PIC_DATA_BIT_COUNT)
 
 
 
 def CmdLoadProg(PicDataWord):
    DataWrite(PIC_CMD_LOAD_PROG, PIC_CMD_BIT_COUNT)
+   time.sleep(SLEEP_DATA)
    DataWrite(PicDataWord, PIC_DATA_BIT_COUNT)
 
 
 
 def CmdReadProg():
    DataWrite(PIC_CMD_READ_PROG, PIC_CMD_BIT_COUNT)
+   time.sleep(SLEEP_DATA)
    PicDataWord = DataRead(PIC_DATA_BIT_COUNT)
 
    return PicDataWord
@@ -183,12 +176,14 @@ def CmdReadProg():
 
 def CmdLoadData(PicDataWord):
    DataWrite(PIC_CMD_LOAD_DATA, PIC_CMD_BIT_COUNT)
+   time.sleep(SLEEP_DATA)
    DataWrite(PicDataWord, PIC_DATA_BIT_COUNT)
 
 
 
 def CmdReadData():
    DataWrite(PIC_CMD_READ_DATA, PIC_CMD_BIT_COUNT)
+   time.sleep(SLEEP_DATA)
    PicDataWord = DataRead(PIC_DATA_BIT_COUNT)
 
    return PicDataWord

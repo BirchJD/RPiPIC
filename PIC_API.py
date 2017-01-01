@@ -52,16 +52,11 @@ PIC_DELAY_EEPROM_PROGRAM = PIC.PIC_DELAY_EEPROM_PROGRAM
 def InitGPIO():
    RPi.GPIO.setwarnings(False)
    RPi.GPIO.setmode(RPi.GPIO.BCM)
-   RPi.GPIO.setup(PIC.GPIO_VDD_PIN, RPi.GPIO.OUT, initial=0)
-   RPi.GPIO.setup(PIC.GPIO_PGM_PIN, RPi.GPIO.OUT, initial=0)
-   RPi.GPIO.setup(PIC.GPIO_CLK_PIN, RPi.GPIO.OUT, initial=0)
-   RPi.GPIO.setup(PIC.GPIO_DATA_OUT_PIN, RPi.GPIO.OUT, initial=0)
+   RPi.GPIO.setup(PIC.GPIO_PGM_PIN, RPi.GPIO.OUT, initial=PIC.PIC_PGM_OFF)
+   RPi.GPIO.setup(PIC.GPIO_VDD_PIN, RPi.GPIO.OUT, initial=PIC.PIC_VDD_OFF)
+   RPi.GPIO.setup(PIC.GPIO_CLK_PIN, RPi.GPIO.OUT, initial=PIC.PIC_CLK_OFF)
+   RPi.GPIO.setup(PIC.GPIO_DATA_OUT_PIN, RPi.GPIO.OUT, initial=PIC.PIC_OUT_DATA_0)
    RPi.GPIO.setup(PIC.GPIO_DATA_IN_PIN, RPi.GPIO.IN, pull_up_down=RPi.GPIO.PUD_UP)
-
-   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_OFF)
-   RPi.GPIO.output(PIC.GPIO_PGM_PIN, PIC.PIC_PGM_OFF)
-   RPi.GPIO.output(PIC.GPIO_CLK_PIN, PIC.PIC_CLK_OFF)
-   RPi.GPIO.output(PIC.GPIO_DATA_OUT_PIN, PIC.PIC_OUT_DATA_0)
 
 
 
@@ -77,25 +72,23 @@ def ProgrammerPresent():
 def PowerOnDevice():
    RPi.GPIO.setwarnings(False)
    RPi.GPIO.setmode(RPi.GPIO.BCM)
-   RPi.GPIO.setup(PIC.GPIO_VDD_PIN, RPi.GPIO.OUT, initial=0)
-   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_ON)
+   RPi.GPIO.setup(PIC.GPIO_VDD_PIN, RPi.GPIO.OUT, initial=PIC.PIC_VDD_ON)
 
 
 
 def PowerOffDevice():
    RPi.GPIO.setwarnings(False)
    RPi.GPIO.setmode(RPi.GPIO.BCM)
-   RPi.GPIO.setup(PIC.GPIO_VDD_PIN, RPi.GPIO.OUT, initial=0)
-   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_OFF)
+   RPi.GPIO.setup(PIC.GPIO_VDD_PIN, RPi.GPIO.OUT, initial=PIC.PIC_VDD_OFF)
 
 
 
 def ProgramModeStart():
-   RPi.GPIO.output(PIC.GPIO_CLK_PIN, PIC.PIC_CLK_OFF)
-   RPi.GPIO.output(PIC.GPIO_DATA_OUT_PIN, PIC.PIC_OUT_DATA_0)
-   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_ON)
+   ProgramModeEnd()
    RPi.GPIO.output(PIC.GPIO_PGM_PIN, PIC.PIC_PGM_ON)
-
+   time.sleep(PIC.PIC_DELAY_POWER_PROGRAM)
+   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_ON)
+   RPi.GPIO.output(PIC.GPIO_DATA_OUT_PIN, PIC.PIC_OUT_DATA_1)
 
 
 def ProgramModeEnd():
@@ -111,6 +104,7 @@ def EraseProgramMemory():
    PIC.CmdBeginEraseProgram()
    PIC.CmdEraseProgMemory()
    time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
 
 
 
@@ -119,6 +113,7 @@ def EraseDataMemory():
    PIC.CmdBeginEraseProgram()
    PIC.CmdEraseDataMemory()
    time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
 
 
 

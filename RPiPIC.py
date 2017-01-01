@@ -605,17 +605,10 @@ else:
 #/********************************/
          elif "-E" in sys.argv:
             print("Device " + sys.argv[ARG_DEVICE] + "\n")
-            MemoryAreaSetData(MemoryMap, "CONFIG:CONF", "0000")
-
-            for Count in range(15, 0, -1):
-               sys.stdout.write("  WAIT FOR CONFIG CHANGE: {:d}  \r".format(Count))
-               sys.stdout.flush()
-               time.sleep(1)
-
             MemoryMapStore = StoreMemoryValues(MemoryMap)
+            MemoryAreaSetData(MemoryMap, "CONFIG:CONF", "0000")
             EraseAll()
             RestoreMemoryValues(MemoryMapStore)
-
             print("ALL DEVICE DATA ERASED\n")
 #  /***********************/
 # /* Blank check device. */
