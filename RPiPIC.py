@@ -137,6 +137,8 @@ def ProgramWrite(WriteMemoryMap, PulseCount):
    
    print(">>>>> WRITING TO DEVICE\n")
    for FindCount in range(len(WriteMemoryMap)):
+      time.sleep(0.1) # Allow device to settle before setting programming mode.
+
       if WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_WO) and len(WriteMemoryMap[FindCount]) > PIC_DEVICES.PICDEV_MEM_DATA and len(WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA]) != 0:
          PIC_API.ProgramModeStart()
 

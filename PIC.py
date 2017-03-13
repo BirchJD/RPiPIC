@@ -33,11 +33,12 @@ import RPi.GPIO
 #/**************************************/
 #/* Raspberry Pi GPIO pin allocations. */
 #/**************************************/
-GPIO_VDD_PIN = 23
-GPIO_PGM_PIN = 22
-GPIO_CLK_PIN = 17
-GPIO_DATA_IN_PIN = 4
-GPIO_DATA_OUT_PIN = 27
+GPIO_VDD_PIN = 27
+GPIO_PGM_PIN = 17
+GPIO_CLK_PIN = 9
+GPIO_DATA_IN_PIN = 22
+GPIO_DATA_OUT_PIN = 10
+
 
 
 #/******************************/
