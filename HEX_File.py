@@ -82,6 +82,8 @@ def ReadHexFile(FileName):
             for CheckSumCount in range(1, len(ThisLine) - 4, 2):
                ThisCheckSum = ThisCheckSum + string.atoi(ThisLine[CheckSumCount:CheckSumCount + 2], 16)
             ThisCheckSum = ((~ThisCheckSum) & 0xFF) + 1
+            if ThisCheckSum > 255:
+               ThisCheckSum = ThisCheckSum - 256
             if CheckSum != ThisCheckSum:
                print("CHECKSUM MISMATCH: {:2.2X} != {:2.2X}".format(CheckSum, ThisCheckSum))
 
