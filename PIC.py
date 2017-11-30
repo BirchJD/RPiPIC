@@ -47,18 +47,19 @@ GPIO_DATA_OUT_PIN = 10
 # Target 100nS between each clock transition.
 # NOTE: Calling a function in Python will probably exceed the required period.
 SLEEP_CLOCK = 100 / 1000000000.0
+SLEEP_CLOCK_READ = 1000 / 1000000000.0
 # Target 1uS between each command and data.
 # NOTE: Calling a function in Python will probably exceed the required period.
 SLEEP_DATA = 1 / 1000000.0
 # Target 100uS program pulse width.
 # NOTE: This is for Flash type memory on older devices, using program pulses.
-PIC_DELAY_FLASH_PROGRAM = 100 / 1000000.0
+PIC_DELAY_FLASH_PROGRAM = 150 / 1000000.0
 # Target 6mS to erase EEPROM memory location.
-PIC_DELAY_EEPROM_ERASE = 6 / 1000.0
+PIC_DELAY_EEPROM_ERASE = 10 / 1000.0
 # Target 8mS to write EEPROM memory location.
-PIC_DELAY_EEPROM_PROGRAM = 8 / 1000.0
+PIC_DELAY_EEPROM_PROGRAM = 10 / 1000.0
 # Target 5uS power on program mode.
-PIC_DELAY_POWER_PROGRAM = 5 / 1000000.0
+PIC_DELAY_POWER_PROGRAM = 10 / 1000000.0
 
 
 
@@ -119,9 +120,9 @@ def DataRead(BitCount):
    PicDataWord = 0
    for Count in range(BitCount):
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
-      time.sleep(SLEEP_CLOCK)
+      time.sleep(SLEEP_CLOCK_READ)
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
-      time.sleep(SLEEP_CLOCK)
+      time.sleep(SLEEP_CLOCK_READ)
 
       if RPi.GPIO.input(GPIO_DATA_IN_PIN) == PIC_IN_DATA_1:
          PicDataWord = PicDataWord | int(math.pow(2, Count))

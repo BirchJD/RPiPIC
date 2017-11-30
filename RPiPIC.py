@@ -200,7 +200,7 @@ def ProgramWrite(WriteMemoryMap, PulseCount):
 def ProgramVerify(DataOffset, Data, HexFileData):
    for Count in range(len(HexFileData)):
       if     HexFileData[Count][HEX_File.ADDRESS] >= DataOffset \
-         and HexFileData[Count][HEX_File.ADDRESS] <= DataOffset + len(Data):
+         and HexFileData[Count][HEX_File.ADDRESS] <= DataOffset + len(Data) * 2:
          sys.stdout.write("{:8X} [{:4X}] -> {:8X} [{:4X}] ".format(DataOffset, len(Data), HexFileData[Count][HEX_File.ADDRESS], len(HexFileData[Count][HEX_File.DATA])))
          Offset = HexFileData[Count][HEX_File.ADDRESS] - DataOffset
          Offset = Offset / 2
@@ -300,10 +300,10 @@ def CreateMemoryMap(MemoryMap):
          if MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & PIC_DEVICES.PICMEM_DATA:
             BlankMemoryMap.append([MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE],
                                   MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR],
-                                  MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE],
+                                  MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE] * 2,
                                   MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR],
                                   MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_STRE_MASK],
-                                  [PIC_API.PIC_BLANK_DATA_WORD for Value in range(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE])]])
+                                  [PIC_API.PIC_BLANK_DATA_WORD for Value in range(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE] * 2)]])
          else:
             BlankMemoryMap.append([MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE],
                                   MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR],
@@ -400,7 +400,7 @@ def MergeMemoryMap(WriteMemoryMap, HexFileData):
       sys.stdout.write("{:8X} -> ".format(HexFileData[Count][HEX_File.ADDRESS]))
       for FindCount in range(len(WriteMemoryMap)):
          if     HexFileData[Count][HEX_File.ADDRESS] >= WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR] \
-            and HexFileData[Count][HEX_File.ADDRESS] <= WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR] + WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_SIZE]:
+            and HexFileData[Count][HEX_File.ADDRESS] <= WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR] + WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_SIZE] * 2:
             sys.stdout.write("{:8X} ".format(WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_ADDR]))
             Offset = HexFileData[Count][HEX_File.ADDRESS] - WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR]
             Offset = Offset / 2

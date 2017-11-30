@@ -114,7 +114,7 @@ PICMEM_TYPE = [
 #/*    PIC Device Name,                                                     */
 #/*    [                                                                    */
 #/*       Memory Type, PIC Memory Area, Start Address, Length, Obj Address, */
-#/*       Store/Restore Mask,                                               */
+#/*       Store/Restore Mask, Word Size                                     */
 #/*       ...                                                               */
 #/*    ],                                                                   */
 #/*    ...                                                                  */
@@ -247,7 +247,7 @@ PIC_DEVICE.append([
 PIC_DEVICE.append([
 "16F630",
    [
-      [PICMEM_RW|PICMEM_EEPROM|PICMEM_DATA,                          0x0000, 0x0040, 0x4200, 0x0000],
+      [PICMEM_RW|PICMEM_EEPROM|PICMEM_DATA,                          0x0000, 0x0080, 0x4200, 0x0000],
       [PICMEM_RW|PICMEM_EEPROM|PICMEM_PROG,                          0x0000, 0x03FF, 0x0000, 0x0000],
       [PICMEM_RW|PICMEM_EEPROM|PICMEM_PROG|PICMEM_ST|PICMEM_RE|PICMEM_OSC_CAL, 0x03FF, 0x0001, 0x03FF, 0x3FFF],
       [PICMEM_WO|PICMEM_EEPROM|PICMEM_CONF|PICMEM_ID,                0x0000, 0x0004, 0x4000, 0x0000],
