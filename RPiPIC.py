@@ -610,6 +610,13 @@ else:
             MemoryMapStore = StoreMemoryValues(MemoryMap)
             MemoryAreaSetData(MemoryMap, "CONFIG:CONF", "0000")
             EraseAll()
+            print("Allow device to complete erase process...")
+            PIC_API.PowerOnDevice()
+            for Count in range(5):
+               sys.stdout.write("{:1}  \r".format(5 - Count))
+               sys.stdout.flush()
+               time.sleep(1)
+            PIC_API.PowerOffDevice()
             RestoreMemoryValues(MemoryMapStore)
             print("ALL DEVICE DATA ERASED\n")
 #  /***********************/
