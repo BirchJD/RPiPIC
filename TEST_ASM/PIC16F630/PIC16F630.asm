@@ -5,6 +5,11 @@
                   __CONFIG _INTRC_OSC_NOCLKOUT & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
 
 
+;/********************************************************************************/
+;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F630 */
+;/* V1.00 2017-12-31 (C) Jason Birch                                             */
+;/********************************************************************************/
+
 
 ;/*************/
 ;/* Constants */

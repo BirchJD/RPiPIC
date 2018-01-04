@@ -20,21 +20,24 @@
 #/* PIC_API                                                                  */
 #/* ------------------------------------------------------------------------ */
 #/* V1.00 - 2016-12-22 - Jason Birch                                         */
+#/* V1.01 - 2017-12-30 - Added support for PIC18F device programming.        */
 #/* ------------------------------------------------------------------------ */
 #/* Python PIC Microcontroller API.                                          */
 #/****************************************************************************/
 
 
+import sys
 import time
 import datetime
 import RPi.GPIO
 import PIC
 
 
+PIC_BLANK_CONFIG_WORD = PIC.PIC_BLANK_CONFIG_WORD
 PIC_BLANK_PROG_WORD = PIC.PIC_BLANK_PROG_WORD
-PIC_BLANK_PROG_WORD_FORMAT = PIC.PIC_BLANK_PROG_WORD_FORMAT
+PIC_BLANK_PROG_WORD_18F = PIC.PIC_BLANK_PROG_WORD_18F
 PIC_BLANK_DATA_WORD = PIC.PIC_BLANK_DATA_WORD
-PIC_BLANK_DATA_WORD_FORMAT = PIC.PIC_BLANK_DATA_WORD_FORMAT
+PIC_BLANK_DATA_WORD_18F = PIC.PIC_BLANK_DATA_WORD_18F
 PIC_PROG_PULSE_COUNT = PIC.PIC_PROG_PULSE_COUNT
 PIC_DELAY_FLASH_PROGRAM = PIC.PIC_DELAY_FLASH_PROGRAM
 PIC_DELAY_EEPROM_ERASE = PIC.PIC_DELAY_EEPROM_ERASE
@@ -42,9 +45,9 @@ PIC_DELAY_EEPROM_PROGRAM = PIC.PIC_DELAY_EEPROM_PROGRAM
 
 
 
-#/***********************/
-#/* API LEVEL FUNCTIONS */
-#/***********************/
+#/***************************/
+#/* PIC API LEVEL FUNCTIONS */
+#/***************************/
 
 #  /*******************************************/
 # /* Configure Raspberry Pi GPIO interfaces. */
@@ -83,37 +86,27 @@ def PowerOffDevice():
 
 
 
-def ProgramModeStart():
+def ProgramModeStart(PicDevice):
    ProgramModeEnd()
-   RPi.GPIO.output(PIC.GPIO_PGM_PIN, PIC.PIC_PGM_ON)
-   time.sleep(PIC.PIC_DELAY_POWER_PROGRAM)
-   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_ON)
+   if PicDevice in ["16F88", "16F627", "16F876A", "16F877A"]:
+      RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_ON)
+      time.sleep(PIC.PIC_DELAY_POWER_PROGRAM)
+      RPi.GPIO.output(PIC.GPIO_PGM_PIN, PIC.PIC_PGM_ON)
+      time.sleep(PIC.PIC_DELAY_POWER_PROGRAM)
+   else:
+      RPi.GPIO.output(PIC.GPIO_PGM_PIN, PIC.PIC_PGM_ON)
+      time.sleep(PIC.PIC_DELAY_POWER_PROGRAM)
+      RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_ON)
+      time.sleep(PIC.PIC_DELAY_POWER_PROGRAM)
+
    RPi.GPIO.output(PIC.GPIO_DATA_OUT_PIN, PIC.PIC_OUT_DATA_1)
 
 
 def ProgramModeEnd():
-   RPi.GPIO.output(PIC.GPIO_PGM_PIN, PIC.PIC_PGM_OFF)
-   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_OFF)
-   RPi.GPIO.output(PIC.GPIO_CLK_PIN, PIC.PIC_CLK_OFF)
    RPi.GPIO.output(PIC.GPIO_DATA_OUT_PIN, PIC.PIC_OUT_DATA_0)
-
-
-
-def EraseProgramMemory():
-   PIC.CmdLoadProg(PIC_BLANK_PROG_WORD)
-   PIC.CmdBeginEraseProgram()
-   PIC.CmdEraseProgMemory()
-   time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
-   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
-
-
-
-def EraseDataMemory():
-   PIC.CmdLoadProg(PIC_BLANK_PROG_WORD)
-   PIC.CmdBeginEraseProgram()
-   PIC.CmdEraseDataMemory()
-   time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
-   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+   RPi.GPIO.output(PIC.GPIO_CLK_PIN, PIC.PIC_CLK_OFF)
+   RPi.GPIO.output(PIC.GPIO_VDD_PIN, PIC.PIC_VDD_OFF)
+   RPi.GPIO.output(PIC.GPIO_PGM_PIN, PIC.PIC_PGM_OFF)
 
 
 
@@ -122,31 +115,194 @@ def IncLocation():
 
 
 
-def ReadProgLocation():
-   return PIC.CmdReadProg()
+def Seek(PicDevice, Address, IsOffset = False):
+   sys.stdout.write("\n")
+   if IsOffset == True:
+      OffsetChar = "+"
+   else:
+      OffsetChar = ""
+
+   if PicDevice[:3] in ["12F", "16F"]:
+      Count = 0
+      for Count in range(Address):
+         if Count % 100 == 0:
+            sys.stdout.write("SEEK {:}{:08X}\r".format(OffsetChar, Count))
+            sys.stdout.flush()
+         IncLocation()
+      sys.stdout.write("SEEK {:}{:08X}\n".format(OffsetChar, Count))
+   elif PicDevice[:3] in ["18F"]:
+      sys.stdout.write("SEEK {:}{:08X}\n".format(OffsetChar, Address))
 
 
 
-def ReadDataLocation():
-   return PIC.CmdReadData()
+def EraseChip(PicDevice):
+   ConfigMode(PicDevice, PIC_BLANK_CONFIG_WORD)
+   PIC.CmdEraseChip()
+   time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
 
 
 
-def ConfigMode():
-   PIC.CmdLoadConfig(0x00)
-
-
-
-def ProgramConfigLocation(PicDataWord, PulseCount):
-   PIC.CmdLoadConfig(PicDataWord)
-
-# Pulse loop for Flash memory programming.
-# PulseCount = 1 for EEPROM memory.
-   AvgPeriod = 0
-   for Count in range(PulseCount):
+def EraseProgramMemory(SetWordFlag = False):
+   if SetWordFlag == True:
+      PIC.CmdLoadProg(PIC_BLANK_PROG_WORD)
       PIC.CmdBeginEraseProgram()
       time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
       time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+   PIC.CmdEraseProgMemory()
+   time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+
+
+
+def EraseDataMemory(SetWordFlag = False):
+   if SetWordFlag == True:
+      PIC.CmdLoadProg(PIC_BLANK_DATA_WORD)
+      PIC.CmdBeginEraseProgram()
+      time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+      time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+   PIC.CmdEraseDataMemory()
+   time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+
+
+
+def EraseAllProcess_1():
+   PIC.CmdLoadConfig(0x0000)
+   for Count in range(7):
+      PIC.CmdIncAddress()
+   PIC.CmdEraseSetup1()
+   PIC.CmdEraseSetup2()
+   PIC.CmdLoadProg(PIC_BLANK_PROG_WORD)
+   PIC.CmdBeginEraseProgram()
+   time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+   time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+   PIC.CmdEraseSetup1()
+   PIC.CmdEraseSetup2()
+
+
+
+def EraseAllMemory(PicDevice):
+   if PicDevice[:3] in ["12F", "16F"]:
+      if PicDevice in ["16F88", "16F876A", "16F877A"]:
+         EraseChip(PicDevice)
+      elif PicDevice in ["16F627"]:
+         EraseAllProcess_1()
+      else:
+         EraseProgramMemory()
+         ConfigMode(PicDevice, PIC_BLANK_CONFIG_WORD)
+         EraseProgramMemory()
+         EraseDataMemory()
+   elif PicDevice[:3] in ["18F"]:
+      PIC.CmdBulkErase_18F()
+      time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+      time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+
+
+
+def ConfigMode(PicDevice, PicDataWord):
+   if PicDevice[:3] in ["12F", "16F"]:
+      PIC.CmdLoadConfig(PicDataWord)
+
+
+
+def ReadConfigLocation(PicDevice, Address, Bytes = 1):
+   if PicDevice[:3] in ["12F", "16F"]:
+      Data = PIC.CmdReadProg()
+      IncLocation()
+   elif PicDevice[:3] in ["18F"]:
+      Data = PIC.CmdReadProg_18F(Address, True)
+      if Bytes == 2:
+         Data = Data | (PIC.CmdReadProg_18F(Address + 1, True) << 8)
+   return Data
+
+
+
+def ReadProgLocation(PicDevice, Address, Bytes = 1):
+   if PicDevice[:3] in ["12F", "16F"]:
+      Data = (PIC.CmdReadProg() & PIC.PIC_BLANK_PROG_WORD)
+      IncLocation()
+   elif PicDevice[:3] in ["18F"]:
+      Data = (PIC.CmdReadProg_18F(Address) & PIC.PIC_BLANK_PROG_WORD_18F)
+      if Bytes == 2:
+         Data = Data | ((PIC.CmdReadProg_18F(Address + 1) & PIC.PIC_BLANK_PROG_WORD_18F) << 8)
+   return Data
+
+
+
+def ReadDataLocation(PicDevice, Address):
+   if PicDevice[:3] in ["12F", "16F"]:
+      Data = (PIC.CmdReadData() & PIC.PIC_BLANK_DATA_WORD)
+      IncLocation()
+   elif PicDevice[:3] in ["18F"]:
+      Data = (PIC.CmdReadData_18F(Address) & PIC.PIC_BLANK_DATA_WORD_18F)
+   return Data
+
+
+
+def ProgramConfigLocation(PicDevice, Address, PicDataWord, PulseCount):
+   if PicDevice[:3] in ["12F", "16F"]:
+      PIC.CmdLoadConfig(PicDataWord)
+# Pulse loop for Flash memory programming.
+# For EEPROM memory, PulseCount = 1.
+      for Count in range(PulseCount):
+         PIC.CmdBeginEraseProgram()
+         time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+         time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+         if PicDevice in ["16F88", "16F876A", "16F877A"]:
+            PIC.CmdEndProgramming()
+   elif PicDevice[:3] in ["18F"]:
+      PIC.CmdLoadProg_18F(Address, PicDataWord, True)
+
+
+
+def ProgramMemoryLocation(PicDevice, Address, PicDataWord, PulseCount, ConfigMode = False):
+   if PicDevice[:3] in ["12F", "16F"]:
+      PIC.CmdLoadProg(PicDataWord)
+# Pulse loop for Flash memory programming.
+# For EEPROM memory, PulseCount = 1.
+      for Count in range(PulseCount):
+         if PicDevice in ["16F88"]:
+            PIC.CmdBeginProgramOnly()
+         elif ConfigMode == False and PicDevice in ["16F876A", "16F877A"]:
+            PIC.CmdBeginProgramOnly()
+         else:
+            PIC.CmdBeginEraseProgram()
+         time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+         time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+         if PicDevice in ["16F88"]:
+            time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+            time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+         if PicDevice in ["16F88", "16F876A", "16F877A"]:
+            PIC.CmdEndProgramming()
+   elif PicDevice[:3] in ["18F"]:
+      PIC.CmdLoadProg_18F(Address, PicDataWord)
+
+
+
+def ProgramDataLocation(PicDevice, Address, PicDataWord, PulseCount):
+   if PicDevice[:3] in ["12F", "16F"]:
+      PIC.CmdLoadData(PicDataWord)
+# Pulse loop for Flash memory programming.
+# For EEPROM memory, PulseCount = 1.
+      for Count in range(PulseCount):
+         if PicDevice in ["16F88"]:
+            PIC.CmdBeginProgramOnly()
+         elif ConfigMode == False and PicDevice in ["16F876A", "16F877A"]:
+            PIC.CmdBeginProgramOnly()
+         else:
+            PIC.CmdBeginEraseProgram()
+         time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+         time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+         if PicDevice in ["16F88"]:
+            time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
+            time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
+         if PicDevice in ["16F88", "16F876A", "16F877A"]:
+            PIC.CmdEndProgramming()
+   elif PicDevice[:3] in ["18F"]:
+      PIC.CmdLoadData_18F(Address, PicDataWord)
+
+
 
 # Flash memory programming sample.
 #      StartTime = datetime.datetime.now().microsecond
@@ -159,60 +315,4 @@ def ProgramConfigLocation(PicDataWord, PulseCount):
 #         AvgPeriod = EndTime - StartTime
 #      else:
 #         AvgPeriod = (AvgPeriod + (EndTime - StartTime)) / 2
-
-   return AvgPeriod
-
-
-
-def ProgramMemoryLocation(PicDataWord, PulseCount):
-   PIC.CmdLoadProg(PicDataWord)
-
-# Pulse loop for Flash memory programming.
-# PulseCount = 1 for EEPROM memory.
-   AvgPeriod = 0
-   for Count in range(PulseCount):
-      PIC.CmdBeginEraseProgram()
-      time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
-      time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
-
-# Flash memory programming sample.
-#      StartTime = datetime.datetime.now().microsecond
-#      EndTime = StartTime
-#      while EndTime - StartTime < PIC.PIC_DELAY_EEPROM_PROGRAM:
-#         EndTime = datetime.datetime.now().microsecond
-#      PIC.CmdEndProgram()
-#      EndTime = datetime.datetime.now().microsecond
-#      if AvgPeriod == 0:
-#         AvgPeriod = EndTime - StartTime
-#      else:
-#         AvgPeriod = (AvgPeriod + (EndTime - StartTime)) / 2
-
-   return AvgPeriod
-
-
-
-def ProgramDataLocation(PicDataWord, PulseCount):
-   PIC.CmdLoadData(PicDataWord)
-
-# Pulse loop for Flash memory programming.
-# PulseCount = 1 for EEPROM memory.
-   AvgPeriod = 0
-   for Count in range(PulseCount):
-      PIC.CmdBeginEraseProgram()
-      time.sleep(PIC.PIC_DELAY_EEPROM_ERASE)
-      time.sleep(PIC.PIC_DELAY_EEPROM_PROGRAM)
-
-# Flash memory programming sample.
-#      StartTime = datetime.datetime.now().microsecond
-#      EndTime = StartTime
-#      while EndTime - StartTime < PIC.PIC_DELAY_EEPROM_PROGRAM:
-#         EndTime = datetime.datetime.now().microsecond
-#      PIC.CmdEndProgram()
-#      EndTime = datetime.datetime.now().microsecond
-#      if AvgPeriod == 0:
-#         AvgPeriod = EndTime - StartTime
-#      else:
-#         AvgPeriod = (AvgPeriod + (EndTime - StartTime)) / 2
-
-   return AvgPeriod
 

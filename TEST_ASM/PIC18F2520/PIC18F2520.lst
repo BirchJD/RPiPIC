@@ -1,955 +1,208 @@
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  1
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
+gplink-0.13.7 beta
+Copyright (c) 1998-2005 gputils project
+Listing File Generated: 12-30-2017  15:15:11
  
-               00001                   LIST     P = P18F2520
-               00002 
-               00003                   INCLUDE  "../INCLUDE/P18F2520.INC"
-               00001         LIST
-               00002 
-               00003 ;==========================================================================
-               00004 ;  MPASM PIC18F2520 processor include
-               00005 ; 
-               00006 ;  (c) Copyright 1999-2011 Microchip Technology, All rights reserved
-               00007 ;==========================================================================
-               00008 
-               01333         LIST
-               00004 
-Warning [212] : 18cxxx devices should specify __CONFIG address
-Error [113] : Symbol not previously defined (_INTRC_OSC_NOCLKOUT).
-               00005                   __CONFIG _INTRC_OSC_NOCLKOUT & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
-               00006 
-               00007 
-               00008 
-               00009 ;/*************/
-               00010 ;/* Constants */
-               00011 ;/*************/
-  00000002     00012 GPIO_LED          EQU      (1 << RB1)           ; GPIO pin allocated for driving an LED.
-  00000001     00013 GPIO_SWITCH       EQU      (1 << RB0)           ; GPIO pin allocated for sensing a switch press.
-               00014 
-  00000006     00015 DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
-               00016 
-               00017 
-               00018 
-               00019 ;/******************/
-               00020 ;/* RAM Registers. */
-               00021 ;/******************/
-               00022 CBLOCK            0x20
-               00023                   FLASH_COUNT                   ; Keep track of howmany LED inversions remain.
-               00024 ENDC
-               00025 
-               00026 
-               00027 
-               00028                   CODE
-               00029 
-               00030 ;/**********************************/
-               00031 ;/* Reset program location vector. */
-               00032 ;/**********************************/
-               00033                   ORG      0x0000
-               00034 
-Error [113] : Symbol not previously defined (RP0).
-0000 90D8      00035                   BCF      STATUS, RP0          ; Select Register bank 2
-Error [113] : Symbol not previously defined (RP1).
-0002 80D8      00036                   BSF      STATUS, RP1
-0004 EF00 F000 00037                   GOTO     INIT
-               00038 
-               00039 
-               00040 
-               00041 ;/*************************************/
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  2
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
  
-               00042 ;/* Interupt program location vector. */
-               00043 ;/*************************************/
-               00044                   ORG      0x0004
-               00045 
-Error [113] : Symbol not previously defined (RP0).
-0004 90D8      00046 INT_HANDLE        BCF      STATUS, RP0          ; Select Register bank 0
-Error [113] : Symbol not previously defined (RP1).
-0006 90D8      00047                   BCF      STATUS, RP1
-               00048 
-0008 A09E      00049                   BTFSS    PIR1, TMR1IF         ; Did a TIMER1 interupt trigger?
-000A EF00 F000 00050                   GOTO     INT_GPI
-000E 5220      00051                   MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-0010 B4D8      00052                   BTFSC    STATUS, Z
-0012 EF00 F000 00053                   GOTO     INT_TIMER1_END
-0016 1E80      00054                   COMF     PORTA                ; Invert LED.
-0018 0620      00055                   DECF     FLASH_COUNT          ; Reduce flash count.
-001A 909E      00056 INT_TIMER1_END    BCF      PIR1, TMR1IF
-               00057 
-001C A0F2      00058 INT_GPI           BTFSS    INTCON, RBIF         ; Did an input pin interupt trigger?
-001E EF00 F000 00059                   GOTO     INT_END
-0022 5220      00060                   MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-0024 A4D8      00061                   BTFSS    STATUS, Z
-0026 EF00 F000 00062                   GOTO     INT_GPI_END
-002A 6ACE      00063                   CLRF     TMR1L                ; Configure full TIMER1 period.
-002C 6ACF      00064                   CLRF     TMR1H
-002E 0E06      00065                   MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
-0030 6E20      00066                   MOVWF    FLASH_COUNT
-0032 90F2      00067 INT_GPI_END       BCF      INTCON, RBIF
-               00068 
-0034 0010      00069 INT_END           RETFIE
-               00070 
-               00071 
-               00072 
-               00073 ;/*******************************/
-               00074 ;/* Initialise microcontroller. */
-               00075 ;/*******************************/
-Error [113] : Symbol not previously defined (ANSEL).
-Error [113] : Symbol not previously defined (ANSEL).
-0036 6A00      00076 INIT              CLRF     ANSEL                ; Switch off A/D pins, all pins digital.
-Error [113] : Symbol not previously defined (RP0).
-0038 80D8      00077                   BSF      STATUS, RP0          ; Select Register bank 1
-Error [113] : Symbol not previously defined (RP1).
-003A 90D8      00078                   BCF      STATUS, RP1
-003C 0E0F      00079                   MOVLW    0x0F                 ; Prescale watchdog timer.
-Error [113] : Symbol not previously defined (OPTION_REG).
-Error [113] : Symbol not previously defined (OPTION_REG).
-003E 6E00      00080                   MOVWF    OPTION_REG
-0040 0EFD      00081                   MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-0042 6E92      00082                   MOVWF    TRISA
-0044 0E01      00083                   MOVLW    GPIO_SWITCH
-Error [113] : Symbol not previously defined (WPUB).
-Error [113] : Symbol not previously defined (WPUB).
-0046 6E00      00084                   MOVWF    WPUB                 ; Weak pull up on switch.
-Error [113] : Symbol not previously defined (IOCB).
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  3
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-Error [113] : Symbol not previously defined (IOCB).
-0048 6E00      00085                   MOVWF    IOCB                 ; Interupt on change of switch state.
-004A 0E01      00086                   MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
-004C 6E9D      00087                   MOVWF    PIE1
-               00088 
-Error [113] : Symbol not previously defined (RP0).
-004E 90D8      00089                   BCF      STATUS, RP0          ; Select Register bank 0
-               00090 ;                  MOVLW    0x07                 ; Switch comparitor off.
-               00091 ;                  MOVWF    CMCON
-0050 6A80      00092                   CLRF     PORTA                ; Clear GPIO port state.
-0052 0E35      00093                   MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
-0054 6ECD      00094                   MOVWF    T1CON                ; Configure Timer1.
-0056 0EC8      00095                   MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)
-0058 6EF2      00096                   MOVWF    INTCON               ; Enable interupts.
-005A 6A9E      00097                   CLRF     PIR1                 ; Clear interupt triggered flags.
-               00098 
-005C 6A20      00099                   CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
-               00100 
-005E 0003      00101 LOOP              SLEEP                         ; Low power mode when inactive.
-0060 0004      00102 ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
-0062 5220      00103                   MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-0064 A4D8      00104                   BTFSS    STATUS, Z
-0066 EF00 F000 00105                   GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
-006A EF00 F000 00106                   GOTO     LOOP                 ; Infinite main loop.
-               00107 
-               00108 
-               00109 
-               00110 ;/*********************************/
-               00111 ;/* Write data to data area test. */
-               00112 ;/*********************************/
-               00113                   ORG      0x2000               ; Area for PIC USER ID - compiler will complain.
-               00114 
-2000 5555 5555 00115                   DE       0x55, 0x55, 0x55, 0x55
-               00116 
-               00117 
-               00118                   ORG      0x2100               ; EEPROM Area.
-               00119 
-2100 BBAA DDCC 00120                   DE       0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
-     FFEE      
-               00121 
-               00122 
-               00123                   ORG      0x2110               ; EEPROM Area.
-               00124 
-2110 0100 0302 00125                   DE       0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
-     0504 0706 
-2118 0908 0B0A 00126                   DE       0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
-     0D0C 0F0E 
-               00127 
-               00128 
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  4
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
-A                                 00000000
-ABDEN                             00000000
-ABDOVF                            00000007
-ACCESS                            00000000
-ACKDT                             00000005
-ACKEN                             00000004
-ACKSTAT                           00000006
-ACQT0                             00000003
-ACQT1                             00000004
-ACQT2                             00000005
-ACTIVE_LOOP                       00000060
-ADCON0                            00000FC2
-ADCON1                            00000FC1
-ADCON2                            00000FC0
-ADCS0                             00000000
-ADCS1                             00000001
-ADCS2                             00000002
-ADDEN                             00000003
-ADEN                              00000003
-ADFM                              00000007
-ADIE                              00000006
-ADIF                              00000006
-ADIP                              00000006
-ADMSK1                            00000001
-ADMSK2                            00000002
-ADMSK3                            00000003
-ADMSK4                            00000004
-ADMSK5                            00000005
-ADON                              00000000
-ADRES                             00000FC3
-ADRESH                            00000FC4
-ADRESL                            00000FC3
-AN0                               00000000
-AN1                               00000001
-AN10                              00000001
-AN11                              00000004
-AN12                              00000000
-AN2                               00000002
-AN3                               00000003
-AN4                               00000005
-AN8                               00000002
-AN9                               00000003
-BANKED                            00000001
-BAUDCON                           00000FB8
-BAUDCTL                           00000FB8
-BCLIE                             00000003
-BCLIF                             00000003
-BCLIP                             00000003
-BF                                00000000
-BGST                              00000005
-BOR                               00000000
-BRG16                             00000003
-BRGH                              00000002
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  5
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-BSR                               00000FE0
-C                                 00000000
-C1INV                             00000004
-C1OUT_CMCON                       00000006
-C1OUT_PORTA                       00000004
-C2INV                             00000005
-C2OUT_CMCON                       00000007
-C2OUT_PORTA                       00000005
-CCP1                              00000002
-CCP1CON                           00000FBD
-CCP1IE                            00000002
-CCP1IF                            00000002
-CCP1IP                            00000002
-CCP1M0                            00000000
-CCP1M1                            00000001
-CCP1M2                            00000002
-CCP1M3                            00000003
-CCP1X                             00000005
-CCP1Y                             00000004
-CCP2CON                           00000FBA
-CCP2IE                            00000000
-CCP2IF                            00000000
-CCP2IP                            00000000
-CCP2M0                            00000000
-CCP2M1                            00000001
-CCP2M2                            00000002
-CCP2M3                            00000003
-CCP2X                             00000005
-CCP2Y                             00000004
-CCP2_PORTB                        00000003
-CCP2_PORTC                        00000001
-CCPR1                             00000FBE
-CCPR1H                            00000FBF
-CCPR1L                            00000FBE
-CCPR2                             00000FBB
-CCPR2H                            00000FBC
-CCPR2L                            00000FBB
-CFGS                              00000006
-CHS0                              00000002
-CHS1                              00000003
-CHS2                              00000004
-CHS3                              00000005
-CIS                               00000003
-CK                                00000006
-CKE                               00000006
-CKP                               00000004
-CLKI                              00000007
-CLKO                              00000006
-CM0                               00000000
-CM1                               00000001
-CM2                               00000002
-CMCON                             00000FB4
-CMIE                              00000006
-CMIF                              00000006
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  6
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-CMIP                              00000006
-CREN                              00000004
-CSRC                              00000007
-CVR0                              00000000
-CVR1                              00000001
-CVR2                              00000002
-CVR3                              00000003
-CVRCON                            00000FB5
-CVREF                             00000002
-CVREN                             00000007
-CVROE                             00000006
-CVRR                              00000005
-CVRSS                             00000004
-D                                 00000005
-DC                                00000001
-DC1B0                             00000004
-DC1B1                             00000005
-DC2B0                             00000004
-DC2B1                             00000005
-DONE                              00000001
-DO_FLASH_COUNT                    00000006
-D_A                               00000005
-D_NOT_A                           00000005
-ECCP1AS                           00000FB6
-ECCP1DEL                          00000FB7
-ECCPAS                            00000FB6
-ECCPAS0                           00000004
-ECCPAS1                           00000005
-ECCPAS2                           00000006
-ECCPASE                           00000007
-EEADR                             00000FA9
-EECON1                            00000FA6
-EECON2                            00000FA7
-EEDATA                            00000FA8
-EEIE                              00000004
-EEIF                              00000004
-EEIP                              00000004
-EEPGD                             00000007
-FAST                              00000001
-FERR                              00000002
-FLASH_COUNT                       00000020
-FLT0                              00000000
-FLTS                              00000002
-FREE                              00000004
-FSR0                              00000000
-FSR0H                             00000FEA
-FSR0L                             00000FE9
-FSR1                              00000001
-FSR1H                             00000FE2
-FSR1L                             00000FE1
-FSR2                              00000002
-FSR2H                             00000FDA
-FSR2L                             00000FD9
-GCEN                              00000007
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  7
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-GIE                               00000007
-GIEH                              00000007
-GIEL                              00000006
-GIE_GIEH                          00000007
-GO                                00000001
-GO_DONE                           00000001
-GO_NOT_DONE                       00000001
-GPIO_LED                          00000002
-GPIO_SWITCH                       00000001
-HLVDCON                           00000FD2
-HLVDEN                            00000004
-HLVDIE                            00000002
-HLVDIF                            00000002
-HLVDIN                            00000005
-HLVDIP                            00000002
-HLVDL0                            00000000
-HLVDL1                            00000001
-HLVDL2                            00000002
-HLVDL3                            00000003
-IDLEN                             00000007
-INDF0                             00000FEF
-INDF1                             00000FE7
-INDF2                             00000FDF
-INIT                              00000036
-INT0                              00000000
-INT0E                             00000004
-INT0F                             00000001
-INT0IE                            00000004
-INT0IF                            00000001
-INT1                              00000001
-INT1E                             00000003
-INT1F                             00000000
-INT1IE                            00000003
-INT1IF                            00000000
-INT1IP                            00000006
-INT1P                             00000006
-INT2                              00000002
-INT2E                             00000004
-INT2F                             00000001
-INT2IE                            00000004
-INT2IF                            00000001
-INT2IP                            00000007
-INT2P                             00000007
-INTCON                            00000FF2
-INTCON2                           00000FF1
-INTCON3                           00000FF0
-INTEDG0                           00000006
-INTEDG1                           00000005
-INTEDG2                           00000004
-INTSRC                            00000007
-INT_END                           00000034
-INT_GPI                           0000001C
-INT_GPI_END                       00000032
-INT_HANDLE                        00000004
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  8
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-INT_TIMER1_END                    0000001A
-IOFS                              00000002
-IPEN                              00000007
-IPR1                              00000F9F
-IPR2                              00000FA2
-IRCF0                             00000004
-IRCF1                             00000005
-IRCF2                             00000006
-IRVST                             00000005
-IVRST                             00000005
-KBI0                              00000004
-KBI1                              00000005
-KBI2                              00000006
-KBI3                              00000007
-LATA                              00000F89
-LATA0                             00000000
-LATA1                             00000001
-LATA2                             00000002
-LATA3                             00000003
-LATA4                             00000004
-LATA5                             00000005
-LATA6                             00000006
-LATA7                             00000007
-LATB                              00000F8A
-LATB0                             00000000
-LATB1                             00000001
-LATB2                             00000002
-LATB3                             00000003
-LATB4                             00000004
-LATB5                             00000005
-LATB6                             00000006
-LATB7                             00000007
-LATC                              00000F8B
-LATC0                             00000000
-LATC1                             00000001
-LATC2                             00000002
-LATC3                             00000003
-LATC4                             00000004
-LATC5                             00000005
-LATC6                             00000006
-LATC7                             00000007
-LOOP                              0000005E
-LVDCON                            00000FD2
-LVDEN                             00000004
-LVDIE                             00000002
-LVDIF                             00000002
-LVDIN                             00000005
-LVDIP                             00000002
-LVDL0                             00000000
-LVDL1                             00000001
-LVDL2                             00000002
-LVDL3                             00000003
-LVV0                              00000000
-LVV1                              00000001
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE  9
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-LVV2                              00000002
-LVV3                              00000003
-MCLR                              00000003
-N                                 00000004
-NOT_A                             00000005
-NOT_ADDRESS                       00000005
-NOT_BOR                           00000000
-NOT_DONE                          00000001
-NOT_MCLR                          00000003
-NOT_PD                            00000002
-NOT_POR                           00000001
-NOT_RBPU                          00000007
-NOT_RI                            00000004
-NOT_SS                            00000005
-NOT_T1SYNC                        00000002
-NOT_T3SYNC                        00000002
-NOT_TO                            00000003
-NOT_W                             00000002
-NOT_WRITE                         00000002
-OERR                              00000001
-OSC1                              00000007
-OSC2                              00000006
-OSCCON                            00000FD3
-OSCFIE                            00000007
-OSCFIF                            00000007
-OSCFIP                            00000007
-OSCTUNE                           00000F9B
-OSTS                              00000003
-OV                                00000003
-P                                 00000004
-PC                                00000FF9
-PCFG0                             00000000
-PCFG1                             00000001
-PCFG2                             00000002
-PCFG3                             00000003
-PCL                               00000FF9
-PCLATH                            00000FFA
-PCLATU                            00000FFB
-PD                                00000002
-PEIE                              00000006
-PEIE_GIEL                         00000006
-PEN                               00000002
-PGC                               00000006
-PGD                               00000007
-PGM                               00000005
-PIE1                              00000F9D
-PIE2                              00000FA0
-PIR1                              00000F9E
-PIR2                              00000FA1
-PLLEN                             00000006
-PLUSW0                            00000FEB
-PLUSW1                            00000FE3
-PLUSW2                            00000FDB
-POR                               00000001
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE 10
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-PORTA                             00000F80
-PORTB                             00000F81
-PORTC                             00000F82
-PORTE                             00000F84
-POSTDEC0                          00000FED
-POSTDEC1                          00000FE5
-POSTDEC2                          00000FDD
-POSTINC0                          00000FEE
-POSTINC1                          00000FE6
-POSTINC2                          00000FDE
-PR2                               00000FCB
-PREINC0                           00000FEC
-PREINC1                           00000FE4
-PREINC2                           00000FDC
-PROD                              00000FF3
-PRODH                             00000FF4
-PRODL                             00000FF3
-PRSEN                             00000007
-PSA                               00000003
-PSSAC0                            00000002
-PSSAC1                            00000003
-PWM1CON                           00000FB7
-R                                 00000002
-RA0                               00000000
-RA1                               00000001
-RA2                               00000002
-RA3                               00000003
-RA4                               00000004
-RA5                               00000005
-RA6                               00000006
-RA7                               00000007
-RB0                               00000000
-RB1                               00000001
-RB2                               00000002
-RB3                               00000003
-RB4                               00000004
-RB5                               00000005
-RB6                               00000006
-RB7                               00000007
-RBIE                              00000003
-RBIF                              00000000
-RBIP                              00000000
-RBPU                              00000007
-RC0                               00000000
-RC1                               00000001
-RC2                               00000002
-RC3                               00000003
-RC4                               00000004
-RC5                               00000005
-RC6                               00000006
-RC7                               00000007
-RCEN                              00000003
-RCIDL                             00000006
-RCIE                              00000005
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE 11
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-RCIF                              00000005
-RCIP                              00000005
-RCMT                              00000006
-RCON                              00000FD0
-RCREG                             00000FAE
-RCSTA                             00000FAB
-RD                                00000000
-RD16                              00000007
-RE3                               00000003
-RI                                00000004
-RSEN                              00000001
-RX                                00000007
-RX9                               00000006
-RX9D                              00000000
-RXDTP                             00000005
-R_NOT_W                           00000002
-R_W                               00000002
-S                                 00000003
-SBOREN                            00000006
-SCK                               00000003
-SCKP                              00000004
-SCL                               00000003
-SCS0                              00000000
-SCS1                              00000001
-SDA                               00000004
-SDI                               00000004
-SDO                               00000005
-SEN                               00000000
-SENDB                             00000003
-SMP                               00000007
-SP0                               00000000
-SP1                               00000001
-SP2                               00000002
-SP3                               00000003
-SP4                               00000004
-SPBRG                             00000FAF
-SPBRGH                            00000FB0
-SPEN                              00000007
-SREN                              00000005
-SS                                00000005
-SSPADD                            00000FC8
-SSPBUF                            00000FC9
-SSPCON1                           00000FC6
-SSPCON2                           00000FC5
-SSPEN                             00000005
-SSPIE                             00000003
-SSPIF                             00000003
-SSPIP                             00000003
-SSPM0                             00000000
-SSPM1                             00000001
-SSPM2                             00000002
-SSPM3                             00000003
-SSPOV                             00000006
-SSPSTAT                           00000FC7
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE 12
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-STATUS                            00000FD8
-STKFUL                            00000007
-STKOVF                            00000007
-STKPTR                            00000FFC
-STKUNF                            00000006
-SWDTE                             00000000
-SWDTEN                            00000000
-SYNC                              00000004
-T016BIT                           00000006
-T08BIT                            00000006
-T0CKI                             00000004
-T0CON                             00000FD5
-T0CS                              00000005
-T0IE                              00000005
-T0IF                              00000002
-T0PS0                             00000000
-T0PS1                             00000001
-T0PS2                             00000002
-T0PS3                             00000003
-T0SE                              00000004
-T13CKI                            00000000
-T1CKI                             00000000
-T1CKPS0                           00000004
-T1CKPS1                           00000005
-T1CON                             00000FCD
-T1OSCEN                           00000003
-T1OSI                             00000001
-T1OSO                             00000000
-T1RUN                             00000006
-T1SYNC                            00000002
-T2CKPS0                           00000000
-T2CKPS1                           00000001
-T2CON                             00000FCA
-T2OUTPS0                          00000003
-T2OUTPS1                          00000004
-T2OUTPS2                          00000005
-T2OUTPS3                          00000006
-T3CCP1                            00000003
-T3CCP2                            00000006
-T3CKPS0                           00000004
-T3CKPS1                           00000005
-T3CON                             00000FB1
-T3SYNC                            00000002
-TABLAT                            00000FF5
-TBLPTR                            00000FF6
-TBLPTRH                           00000FF7
-TBLPTRL                           00000FF6
-TBLPTRU                           00000FF8
-TMR0                              00000FD6
-TMR0H                             00000FD7
-TMR0IE                            00000005
-TMR0IF                            00000002
-TMR0IP                            00000002
-TMR0L                             00000FD6
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE 13
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-TMR0ON                            00000007
-TMR1                              00000FCE
-TMR1CS                            00000001
-TMR1H                             00000FCF
-TMR1IE                            00000000
-TMR1IF                            00000000
-TMR1IP                            00000000
-TMR1L                             00000FCE
-TMR1ON                            00000000
-TMR2                              00000FCC
-TMR2IE                            00000001
-TMR2IF                            00000001
-TMR2IP                            00000001
-TMR2ON                            00000002
-TMR3                              00000FB2
-TMR3CS                            00000001
-TMR3H                             00000FB3
-TMR3IE                            00000001
-TMR3IF                            00000001
-TMR3IP                            00000001
-TMR3L                             00000FB2
-TMR3ON                            00000000
-TO                                00000003
-TOS                               00000FFD
-TOSH                              00000FFE
-TOSL                              00000FFD
-TOSU                              00000FFF
-TOUTPS0                           00000003
-TOUTPS1                           00000004
-TOUTPS2                           00000005
-TOUTPS3                           00000006
-TRISA                             00000F92
-TRISA0                            00000000
-TRISA1                            00000001
-TRISA2                            00000002
-TRISA3                            00000003
-TRISA4                            00000004
-TRISA5                            00000005
-TRISA6                            00000006
-TRISA7                            00000007
-TRISB                             00000F93
-TRISB0                            00000000
-TRISB1                            00000001
-TRISB2                            00000002
-TRISB3                            00000003
-TRISB4                            00000004
-TRISB5                            00000005
-TRISB6                            00000006
-TRISB7                            00000007
-TRISC                             00000F94
-TRISC0                            00000000
-TRISC1                            00000001
-TRISC2                            00000002
-TRISC3                            00000003
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE 14
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-TRISC4                            00000004
-TRISC5                            00000005
-TRISC6                            00000006
-TRISC7                            00000007
-TRMT                              00000001
-TUN0                              00000000
-TUN1                              00000001
-TUN2                              00000002
-TUN3                              00000003
-TUN4                              00000004
-TX                                00000006
-TX9                               00000006
-TX9D                              00000000
-TXCKP                             00000004
-TXEN                              00000005
-TXIE                              00000004
-TXIF                              00000004
-TXIP                              00000004
-TXREG                             00000FAD
-TXSTA                             00000FAC
-UA                                00000001
-VCFG0                             00000004
-VCFG1                             00000005
-VDIRMAG                           00000007
-VPP                               00000003
-VREFN                             00000002
-VREFP                             00000003
-W                                 00000000
-WCOL                              00000007
-WDTCON                            00000FD1
-WR                                00000001
-WREG                              00000FE8
-WREN                              00000002
-WRERR                             00000003
-WUE                               00000001
-Z                                 00000002
-_BOREN_NOSLP_2L                   000000FD
-_BOREN_OFF_2L                     000000F9
-_BOREN_ON_2L                      000000FB
-_BOREN_SBORDIS_2L                 000000FF
-_BORV_0_2L                        000000E7
-_BORV_1_2L                        000000EF
-_BORV_2_2L                        000000F7
-_BORV_3_2L                        000000FF
-_CCP2MX_PORTBE_3H                 000000FE
-_CCP2MX_PORTC_3H                  000000FF
-_CONFIG1H                         00300001
-_CONFIG2H                         00300003
-_CONFIG2L                         00300002
-_CONFIG3H                         00300005
-_CONFIG4L                         00300006
-_CONFIG5H                         00300009
-_CONFIG5L                         00300008
-_CONFIG6H                         0030000B
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE 15
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-_CONFIG6L                         0030000A
-_CONFIG7H                         0030000D
-_CONFIG7L                         0030000C
-_CP0_OFF_5L                       000000FF
-_CP0_ON_5L                        000000FE
-_CP1_OFF_5L                       000000FF
-_CP1_ON_5L                        000000FD
-_CP2_OFF_5L                       000000FF
-_CP2_ON_5L                        000000FB
-_CP3_OFF_5L                       000000FF
-_CP3_ON_5L                        000000F7
-_CPB_OFF_5H                       000000FF
-_CPB_ON_5H                        000000BF
-_CPD_OFF_5H                       000000FF
-_CPD_ON_5H                        0000007F
-_DEBUG_OFF_4L                     000000FF
-_DEBUG_ON_4L                      0000007F
-_DEVID1                           003FFFFE
-_DEVID2                           003FFFFF
-_EBTR0_OFF_7L                     000000FF
-_EBTR0_ON_7L                      000000FE
-_EBTR1_OFF_7L                     000000FF
-_EBTR1_ON_7L                      000000FD
-_EBTR2_OFF_7L                     000000FF
-_EBTR2_ON_7L                      000000FB
-_EBTR3_OFF_7L                     000000FF
-_EBTR3_ON_7L                      000000F7
-_EBTRB_OFF_7H                     000000FF
-_EBTRB_ON_7H                      000000BF
-_FCMEN_OFF_1H                     000000BF
-_FCMEN_ON_1H                      000000FF
-_IDLOC0                           00200000
-_IDLOC1                           00200001
-_IDLOC2                           00200002
-_IDLOC3                           00200003
-_IDLOC4                           00200004
-_IDLOC5                           00200005
-_IDLOC6                           00200006
-_IDLOC7                           00200007
-_IESO_OFF_1H                      0000007F
-_IESO_ON_1H                       000000FF
-_LPT1OSC_OFF_3H                   000000FB
-_LPT1OSC_ON_3H                    000000FF
-_LVP_OFF_4L                       000000FB
-_LVP_ON_4L                        000000FF
-_MCLRE_OFF_3H                     0000007F
-_MCLRE_ON_3H                      000000FF
-_OSC_ECIO6_1H                     000000F5
-_OSC_EC_1H                        000000F4
-_OSC_HSPLL_1H                     000000F6
-_OSC_HS_1H                        000000F2
-_OSC_INTIO67_1H                   000000F8
-_OSC_INTIO7_1H                    000000F9
-_OSC_LP_1H                        000000F0
-gpasm-0.13.7 beta               PIC18F2520.asm5-13-2017  09:14:13          PAGE 16
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
- 
-_OSC_RCIO6_1H                     000000F7
-_OSC_RC_1H                        000000F3
-_OSC_XT_1H                        000000F1
-_PBADEN_OFF_3H                    000000FD
-_PBADEN_ON_3H                     000000FF
-_PWRT_OFF_2L                      000000FF
-_PWRT_ON_2L                       000000FE
-_STVREN_OFF_4L                    000000FE
-_STVREN_ON_4L                     000000FF
-_WDTPS_1024_2H                    000000F5
-_WDTPS_128_2H                     000000EF
-_WDTPS_16384_2H                   000000FD
-_WDTPS_16_2H                      000000E9
-_WDTPS_1_2H                       000000E1
-_WDTPS_2048_2H                    000000F7
-_WDTPS_256_2H                     000000F1
-_WDTPS_2_2H                       000000E3
-_WDTPS_32768_2H                   000000FF
-_WDTPS_32_2H                      000000EB
-_WDTPS_4096_2H                    000000F9
-_WDTPS_4_2H                       000000E5
-_WDTPS_512_2H                     000000F3
-_WDTPS_64_2H                      000000ED
-_WDTPS_8192_2H                    000000FB
-_WDTPS_8_2H                       000000E7
-_WDT_OFF_2H                       000000FE
-_WDT_ON_2H                        000000FF
-_WRT0_OFF_6L                      000000FF
-_WRT0_ON_6L                       000000FE
-_WRT1_OFF_6L                      000000FF
-_WRT1_ON_6L                       000000FD
-_WRT2_OFF_6L                      000000FF
-_WRT2_ON_6L                       000000FB
-_WRT3_OFF_6L                      000000FF
-_WRT3_ON_6L                       000000F7
-_WRTB_OFF_6H                      000000FF
-_WRTB_ON_6H                       000000BF
-_WRTC_OFF_6H                      000000FF
-_WRTC_ON_6H                       000000DF
-_WRTD_OFF_6H                      000000FF
-_WRTD_ON_6H                       0000007F
-_XINST_OFF_4L                     000000BF
-_XINST_ON_4L                      000000FF
-__18F2520                         00000001
-DDRA                              TRISA
-DDRB                              TRISB
-DDRC                              TRISC
-DDRD                              TRISD
-DDRE                              TRISE
-
-
-Errors   :      16
-Warnings :       1 reported,       0 suppressed
-Messages :       0 reported,       2 suppressed
-
+Address  Value    Disassembly              Source
+-------  -----    -----------              ------
+                                                             LIST     P = P18F2520
+                                           
+                                                             INCLUDE  "../INCLUDE/P18F2520.INC"
+                                                   LIST
+                                           
+                                           ;==========================================================================
+                                           ;  MPASM PIC18F2520 processor include
+                                           ; 
+                                           ;  (c) Copyright 1999-2011 Microchip Technology, All rights reserved
+                                           ;==========================================================================
+                                           
+                                                   NOLIST
+                                           
+                                                             ; Micro-controller oscilator
+                                                             CONFIG   OSC = INTIO67, IESO = OFF, LPT1OSC = OFF
+                                           
+                                                             ; Micro-controller configuration
+                                                             CONFIG   PWRT = ON, MCLRE = OFF, PBADEN = OFF, CCP2MX = PORTC, STVREN = OFF
+                                           
+                                                             ; Micro-contoller monitoring
+                                                             CONFIG   WDT = OFF, WDTPS = 512, FCMEN = OFF, BOREN = OFF, BORV = 0
+                                           
+                                                             ; Programming/Debugging
+                                                             CONFIG   DEBUG = OFF, XINST = OFF, LVP = OFF
+                                           
+                                                             ; Code Protection
+                                                             CONFIG   CP0 = OFF, CP1 = OFF, CP2 = OFF, CP3 = OFF, CPB = OFF, CPD = OFF
+                                           
+                                                             ; Write Protection
+                                                             CONFIG   WRT0 = OFF, WRT1 = OFF, WRT2 = OFF, WRT3 = OFF, WRTC = OFF, WRTB = OFF, WRTD = OFF
+                                           
+                                                             ; Table Read Protection
+                                                             CONFIG   EBTR0 = OFF, EBTR1 = OFF, EBTR2 = OFF, EBTR3 = OFF, EBTRB = OFF
+                                           
+                                           
+                                           
+                                           ;/*************/
+                                           ;/* Constants */
+                                           ;/*************/
+                                           GPIO_LED          EQU      (1 << RB5)           ; GPIO pin allocated for driving an LED.
+                                           GPIO_SWITCH       EQU      (1 << RB4)           ; GPIO pin allocated for sensing a switch press.
+                                           
+                                           DO_FLASH_COUNT    EQU      0x0006               ; Number of times to invert LED on button press.
+                                           
+                                           
+                                           
+                                           ;/******************/
+                                           ;/* RAM Registers. */
+                                           ;/******************/
+                                           CBLOCK            0x0000
+                                                             INT_W                         ; Store W register during interupt.
+                                                             INT_STATUS                    ; Store STATUS register during interupt.
+                                                             INT_BSR                       ; Store BSR register during interupt.
+                                           
+                                                             FLASH_COUNT                   ; Keep track of howmany LED inversions remain.
+                                           ENDC
+                                           
+                                           
+                                           
+                                                             CODE
+                                           
+                                           ;/**********************************/
+                                           ;/* Reset program location vector. */
+                                           ;/**********************************/
+                                                             ORG      0x000000
+                                           
+000000   0e07     movlw	0x7                                  MOVLW    0x07                 ; Switch comparitor off.
+000002   6eb4     movwf	0xb4, 0                              MOVWF    CMCON, A
+000004   ef2f     goto	0x5e                                  GOTO     INIT
+000006   f000
+                                           
+                                           
+                                           
+                                           ;/****************************************************/
+                                           ;/* Interupt program location vector, high priority. */
+                                           ;/****************************************************/
+                                                             ORG      0x000008             ; Using RETFIE S, so don't need to save register status.
+                                           
+000008   0011     retfie	0x1               HP_INT_HANDLE     RETFIE   S
+                                           
+                                           
+                                           
+                                           ;/***************************************************/
+                                           ;/* Interupt program location vector, low priority. */
+                                           ;/***************************************************/
+                                                             ORG      0x000018             ; Can not use RETFIE S as low priority interupt is using it,
+                                                                                           ; store/restore register states and just use RETFIE to return.
+000018   6e00     movwf	0, 0               LP_INT_HANDLE     MOVWF    INT_W, A             ; Store registers, to restore before returning from interupt.
+00001a   cfd8     movff	0xfd8, 0x1                           MOVFF    STATUS, INT_STATUS
+00001c   f001
+00001e   cfe0     movff	0xfe0, 0x2                           MOVFF    BSR, INT_BSR
+000020   f002
+                                           
+000022   a09e     btfss	0x9e, 0, 0                           BTFSS    PIR1, TMR1IF, A      ; Did a TIMER1 interupt trigger?
+000024   ef1c     goto	0x38                                  GOTO     INT_RBI
+000026   f000
+                                           
+000028   5203     movf	0x3, 0x1, 0                           MOVF     FLASH_COUNT, F, A    ; Is a flashing process active?
+00002a   b4d8     btfsc	0xd8, 0x2, 0                         BTFSC    STATUS, Z, A
+00002c   ef1b     goto	0x36                                  GOTO     INT_TIMER1_END
+00002e   f000
+000030   0e20     movlw	0x20                                 MOVLW    GPIO_LED
+000032   1a81     xorwf	0x81, 0x1, 0                         XORWF    PORTB, F, A          ; Invert LED.
+000034   0603     decf	0x3, 0x1, 0                           DECF     FLASH_COUNT, F, A       ; Reduce flash count.
+000036   909e     bcf	0x9e, 0, 0           INT_TIMER1_END    BCF      PIR1, TMR1IF, A
+                                           
+000038   a0f2     btfss	0xf2, 0, 0         INT_RBI           BTFSS    INTCON, RBIF, A      ; Did an input pin interupt trigger?
+00003a   ef29     goto	0x52                                  GOTO     INT_END
+00003c   f000
+                                           
+00003e   5203     movf	0x3, 0x1, 0                           MOVF     FLASH_COUNT, F, A    ; Is a flashing process active?
+000040   a4d8     btfss	0xd8, 0x2, 0                         BTFSS    STATUS, Z, A
+000042   ef27     goto	0x4e                                  GOTO     INT_RBI_END
+000044   f000
+000046   6ace     clrf	0xce, 0                               CLRF     TMR1L, A             ; Configure full TIMER1 period.
+000048   6acf     clrf	0xcf, 0                               CLRF     TMR1H, A
+00004a   0e06     movlw	0x6                                  MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
+00004c   6e03     movwf	0x3, 0                               MOVWF    FLASH_COUNT, A
+00004e   5081     movf	0x81, 0, 0          INT_RBI_END       MOVF     PORTB, W, A          ; Read PORTB to allow the interupt flag to be cleared.
+000050   90f2     bcf	0xf2, 0, 0                             BCF      INTCON, RBIF, A
+                                           
+000052   c002     movff	0x2, 0xfe0         INT_END           MOVFF    INT_BSR, BSR         ; Restore registers before returning from interupt.
+000054   ffe0
+000056   5000     movf	0, 0, 0                               MOVF     INT_W, W, A
+000058   c001     movff	0x1, 0xfd8                           MOVFF    INT_STATUS, STATUS
+00005a   ffd8
+00005c   0010     retfie	0                                   RETFIE
+                                           
+                                           
+                                           
+                                           ;/*******************************/
+                                           ;/* Initialise microcontroller. */
+                                           ;/*******************************/
+00005e   80d1     bsf	0xd1, 0, 0           INIT              BSF      WDTCON, SWDTEN, A    ; Enable watchdog timer.
+000060   0e0f     movlw	0xf                                  MOVLW    0x0F                 ; Make all pins digital.
+000062   6ec1     movwf	0xc1, 0                              MOVWF    ADCON1, A
+000064   6ac2     clrf	0xc2, 0                               CLRF     ADCON0, A            ; Switch off A/D pins, all pins digital.
+000066   6a81     clrf	0x81, 0                               CLRF     PORTB, A             ; Clear GPIO port state.
+000068   0edf     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+00006a   6e93     movwf	0x93, 0                              MOVWF    TRISB, A
+00006c   6af1     clrf	0xf1, 0                               CLRF     INTCON2, A           ; Weak pull up on switch. Set PORTB as a low pritority interupt.
+00006e   6a9f     clrf	0x9f, 0                               CLRF     IPR1, A              ; Set all interupt priorities to low priority.
+000070   6ace     clrf	0xce, 0                               CLRF     TMR1L, A             ; Configure full TIMER1 period.
+000072   6acf     clrf	0xcf, 0                               CLRF     TMR1H, A
+000074   8ed0     bsf	0xd0, 0x7, 0                           BSF      RCON, IPEN, A        ; Enable high and low priority interupt states.
+000076   0ec8     movlw	0xc8                                 MOVLW    (1 << GIEH)|(1 << GIEL)|(1 << PEIE)|(1 << RBIE)
+000078   6ef2     movwf	0xf2, 0                              MOVWF    INTCON, A            ; Enable interupts.
+00007a   0e05     movlw	0x5                                  MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC) ; |(1 << T1CKPS0)|(1 << T1CKPS1)
+00007c   6ecd     movwf	0xcd, 0                              MOVWF    T1CON, A             ; Configure Timer1.
+00007e   0e01     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
+000080   6e9d     movwf	0x9d, 0                              MOVWF    PIE1, A
+000082   6a81     clrf	0x81, 0                               CLRF     PORTB, A             ; Clear PORTB to allow the interupt flag to be cleared.
+000084   90f2     bcf	0xf2, 0, 0                             BCF      INTCON, RBIF, A
+000086   6a9e     clrf	0x9e, 0                               CLRF     PIR1, A              ; Clear interupt triggered flags.
+                                           
+000088   6a03     clrf	0x3, 0                                CLRF     FLASH_COUNT, A       ; Clear the flash count RAM register.
+                                           
+00008a   0003     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+00008c   0004     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+00008e   5203     movf	0x3, 0x1, 0                           MOVF     FLASH_COUNT, F, A    ; Is a flashing process active?
+000090   a4d8     btfss	0xd8, 0x2, 0                         BTFSS    STATUS, Z, A
+000092   ef46     goto	0x8c                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
+000094   f000
+000096   ef45     goto	0x8a                                  GOTO     LOOP                 ; Infinite main loop.
+000098   f000
+                                           
+                                           
+                                           
+                                           ;/*********************************/
+                                           ;/* Write data to data area test. */
+                                           ;/*********************************/
+                                                             ORG      0x200000             ; Area for PIC USER ID - compiler will complain.
+                                           
+200000   5555     subfwb	0x55, 0, 0x1                        DE       0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55
+200002   5555     subfwb	0x55, 0, 0x1      
+200004   5555     subfwb	0x55, 0, 0x1      
+200006   5555     subfwb	0x55, 0, 0x1      
+                                           
+                                           
+                                           
+                                                             ORG      0x400000             ; EEPROM Area.
+                                           
+400000   bbaa     btfsc	0xaa, 0x5, 0x1                       DE       0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
+400002   ddcc     rcall	0x3ffb9c           
+400004   ffee     dw	0xffee  ;unknown opcode 
+                                           
+                                           
+                                                             ORG      0x400050             ; EEPROM Area.
+                                           
+400050   0100     movlb	0                                    DE       0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+400052   0302     mulwf	0x2, 0x1           
+400054   0504     decf	0x4, 0, 0x1         
+400056   0706     decf	0x6, 0x1, 0x1       
+400058   0908     iorlw	0x8                                  DE       0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+40005a   0b0a     andlw	0xa                
+40005c   0d0c     mullw	0xc                
+40005e   0f0e     addlw	0xe                
+                                           
+                                           
+                                                             END
+                                           

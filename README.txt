@@ -2,12 +2,15 @@
 #/* RPiPIC                                                                   */
 #/* ------------------------------------------------------------------------ */
 #/* V1.01 - 2017-05-13 - Jason Birch                                         */
+#/* V1.02 - 2017-12-30 - Support for PIC18F device programming.              */
 #/* ------------------------------------------------------------------------ */
 #/* Python PIC Microcontroller Programmer.                                   */
 #/*                                                                          */
 #/* Currently supported devices:                                             */
-#/* 12F629   12F675   12F683                                                 */
-#/* 16F628A  16F630   16F684   16F690   16F886                               */
+#/* READ_DEV_ID     12F629          12F675          12F683          16F628A  */
+#/* 16F630          16F684          16F690          16F886          18F2420  */
+#/* 18F2455         18F2520         18F2550         18F4420         18F4455  */
+#/* 18F4520         18F4550                                                  */
 #/*                                                                          */
 #/* Additional devices can be added in the PIC_DEVICES.py file.              */
 #/****************************************************************************/
@@ -52,17 +55,21 @@ gplib
 
 PIC Microchip Hardware Requirements
 ===================================
-VPP 12.0V 100 mA
-VDD = 2.0V < 6.5V += 0.25V 40 mA
+VPP 12.75V 100 mA - Varys from device to device, see device specifications.
+VDD >=2.0V <=6.5V += 0.25V 40 mA
+
+While programming a device it maybe required to pull a pin named PGM low using
+a high value resistor, to prevent it floating and interfeering with the
+programming process.
 
 
 Raspberry Pi GPIO Requiements
 -----------------------------
-VDD Switch
-PRG Switch
-Data Out
-Data In
-Clock
+OUTPUT      VDD Switch
+OUTPUT      PRG Switch
+OUTPUT      Data Out
+INPUT       Data In
+OUTPUT      Clock
 
 
 
@@ -80,14 +87,18 @@ List currently supported PIC devices.
 ./RPiPIC.py -C [PIC_DEVICE]
 Display device memory checksum.
 
-./RPiPIC.py -D [PIC_DEVICE]
+./RPiPIC.py -D [PIC_DEVICE] <MEMORY_AREA>
 Read memory from device and display.
 
 ./RPiPIC.py -B [PIC_DEVICE]
 Blank check device.
 
-./RPiPIC.py -E [PIC_DEVICE]
+./RPiPIC.py -E [PIC_DEVICE] <NO_STORE>
 Erase all device memory.
+If 'NO_STORE' is specified non data and program memory is not retained.
+
+./RPiPIC.py -EC [PIC_DEVICE]
+Erase all device config.
 
 ./RPiPIC.py -R [PIC_DEVICE] [FILE_NAME]
 Read memory from device and save to .hex file.
@@ -103,6 +114,10 @@ List device memory areas.
 
 ./RPiPIC.py -LD [PIC_DEVICE] [MEMORY_AREA] [DATA]
 Load data into a device memory area.
+EXAMPLES:
+./RPiPIC.py -LD 16F684 CONFIG:BOR_CAL 23F8
+./RPiPIC.py -LD 16F684 CONFIG:CAL 3FFF
+./RPiPIC.py -LD 16F684 CONFIG:ID 0005000100020001
 
 
 
@@ -111,28 +126,144 @@ Project Files
 A full write up for this project can be found at the web site:
 http://www.newsdownload.co.uk/
 
-
 ├── GNU-GeneralPublicLicense.txt
+├── README.txt           - This file.
 ├── RPiPIC.py            - PIC Microchip programmer application.
+├── PIC_DEVICES.py       - Definitions of supported PIC Microchip devices.
+├── HEX_File.py          - Intel HEX file format handler.
 ├── PIC_API.py           - API level PIC Microchip device control.
 ├── PIC.py               - Low level PIC Microchip device control.
-├── HEX_File.py          - Intel HEX file format handler.
-├── PIC_DEVICES.py       - Definitions of supported PIC Microchip devices.
-├── README.txt           - This file.
 └── TEST_ASM             - Example projects for supported PIC Microchip devices.
-    ├── INCLUDE           - PIC Microchip device asm include files.
+    ├── INCLUDE          - PIC Microchip device asm include files.
+    │   ├── P12F629.INC
     │   ├── P12F675.INC
-    │   └── P12F683.INC
-    ├── PIC12F675         - Example application for a PIC Microchip PIC12F675
+    │   ├── P12F683.INC
+    │   ├── P16F627.INC
+    │   ├── P16F628A.INC
+    │   ├── P16F630.INC
+    │   ├── P16F684.INC
+    │   ├── P16F690.INC
+    │   ├── P16F876A.INC
+    │   ├── P16F886.INC
+    │   ├── P16F88.INC
+    │   └── P18F2520.INC
+    ├── PIC12F629        - Example application for a PIC Microchip PIC12F629
+    │   ├── Build.sh
+    │   ├── PIC12F629.asm
+    ├── PIC12F675        - Example application for a PIC Microchip PIC12F675
     │   ├── Build.sh
     │   ├── PIC12F675.asm
-    └── PIC12F683         - Example application for a PIC Microchip PIC12F683
+    ├── PIC12F683        - Example application for a PIC Microchip PIC12F683
+    │   ├── Build.sh
+    │   ├── PIC12F683.asm
+    ├── PIC16F627        - Example application for a PIC Microchip PIC16F627
+    │   ├── Build.sh
+    │   ├── PIC16F627.asm
+    ├── PIC16F628A       - Example application for a PIC Microchip PIC16F628A
+    │   ├── Build.sh
+    │   ├── PIC16F628A.asm
+    ├── PIC16F630        - Example application for a PIC Microchip PIC16F630
+    │   ├── Build.sh
+    │   ├── PIC16F630.asm
+    ├── PIC16F684        - Example application for a PIC Microchip PIC16F684
+    │   ├── Build.sh
+    │   ├── PIC16F684.asm
+    ├── PIC16F690        - Example application for a PIC Microchip PIC16F690
+    │   ├── Build.sh
+    │   ├── PIC16F690.asm
+    ├── PIC16F876A       - Example application for a PIC Microchip PIC16F876A
+    │   ├── Build.sh
+    │   ├── PIC16F876A.asm
+    ├── PIC16F88         - Example application for a PIC Microchip PIC16F88
+    │   ├── Build.sh
+    │   ├── PIC16F88.asm
+    ├── PIC16F886        - Example application for a PIC Microchip PIC16F886
+    │   ├── Build.sh
+    │   ├── PIC16F886.asm
+    └── PIC18F2520       - Example application for a PIC Microchip PIC18F2520
         ├── Build.sh
-        ├── PIC12F683.asm
+        └── PIC18F2520.asm
+
 
 
 Configuration
 -------------
 The only configuration required is to edit the GPIO pin allocation in the
 PIC.py project file to the GPIO allocation used.
+
+
+
+Adding Devices
+--------------
+The file PIC_DEVICES.py contains definitions of the memory map for each suported
+PIC device. PIC devices can be added by creating an additional memory map for
+the device. There are a few reasons why a particular PIC device may not work
+with the current release of this software.
+
+1. There are several programming process specifications, the specifications
+   for most of the PIC12F, PIC16F and PIC18F, are currently implemented.
+   However some devices may have processes not currently supported.
+
+2. The process of adding a device is to define the memory map of the device in
+   the application. It is possible that the current data definitions in the
+   application may not be sufficient to properly define a memory map for a
+   specific device.
+
+An example memory map would be:
+
+PIC_DEVICE.append([
+"16F630",
+   [
+      [PICMEM_RW|PICMEM_EEPROM|PICMEM_DATA,
+                                                0x0000, 0x0080, 0x4200, 0x0000],
+      [PICMEM_RW|PICMEM_EEPROM|PICMEM_PROG,
+                                                0x0000, 0x03FF, 0x0000, 0x0000],
+      [PICMEM_RW|PICMEM_EEPROM|PICMEM_PROG|PICMEM_ST|PICMEM_RE|PICMEM_OSC_CAL,
+                                                0x03FF, 0x0001, 0x03FF, 0x3FFF],
+      [PICMEM_WO|PICMEM_EEPROM|PICMEM_CONF|PICMEM_ID,
+                                                0x0000, 0x0004, 0x4000, 0x0000],
+      [PICMEM_RO|PICMEM_EEPROM|PICMEM_CONF|PICMEM_ID,
+                                                0x2000, 0x0004, 0x4000, 0x0000],
+      [PICMEM_RO|PICMEM_EEPROM|PICMEM_CONF|PICMEM_DEV_ID,
+                                                0x2006, 0x0001, 0x4006, 0x0000],
+      [PICMEM_WO|PICMEM_EEPROM|PICMEM_CONF|PICMEM_RE|PICMEM_CONFIG,
+                                                0x0007, 0x0001, 0x400E, 0x3000],
+      [PICMEM_RO|PICMEM_EEPROM|PICMEM_CONF|PICMEM_ST|PICMEM_CONFIG,
+                                                0x2007, 0x0001, 0x400E, 0x3000],
+   ]
+])
+
+The device name is specified first, then within that definition is the
+definition for the devices memory map. Each line of the definition defines an
+area of the memory.
+
+First if the memory is read only PICMEM_RO, write only PICMEM_RO or read/write
+PICMEM_RW.
+
+Next the physical type of memory, currently only PICMEM_EEPROM supported.
+
+Next the memory region type, PICMEM_DATA data memory read and writable
+by a program. PICMEM_PROG program memory. PICMEM_CONF device configuration
+memory.
+
+Next the memory region segment name, e.g. PICMEM_OSC_CAL oscilator calibration
+word. If PICMEM_ST is specified, this application will read the value of the
+memory before erasing, and where PICMEM_RE is specified the value will be
+restored here after erasing.
+
+The final four words of data for a memory region are:
+
+Device memory address. The address of the memory on the physical device.
+
+Device memory size. The number of words in of memory available in this region.
+
+Assembly memory address. For data and program memory the device address
+typically starts at 0x0000 for both. So in the assembly program a directive
+ORG 0x4000 can be used for example to define data memory content. The
+programming specification of the device can define this value, so if it is
+defined in the specification, that value must be used.
+
+The last value is the configuration mask, used to prevent verification errors
+where configuration bits are unsettable, and always read as a 0 or 1.
+This has not been implemented currently.
 

@@ -5,12 +5,17 @@
                   __CONFIG _INTRC_IO & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
 
 
+;/*******************************************************************************/
+;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F88 */
+;/* V1.00 2017-12-31 (C) Jason Birch                                            */
+;/*******************************************************************************/
+
 
 ;/*************/
 ;/* Constants */
 ;/*************/
-GPIO_LED          EQU      (1 << RB0)           ; GPIO pin allocated for driving an LED.
-GPIO_SWITCH       EQU      (1 << RB1)           ; GPIO pin allocated for sensing a switch press.
+GPIO_LED          EQU      (1 << RB1)           ; GPIO pin allocated for driving an LED.
+GPIO_SWITCH       EQU      (1 << RB0)           ; GPIO pin allocated for sensing a switch press.
 
 DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
 
@@ -33,6 +38,7 @@ ENDC
                   ORG      0x0000
 
                   BSF      STATUS, RP0          ; Select Register bank 1
+                  BCF      STATUS, RP1
                   CLRF     ANSEL                ; Switch off A/D pins, all pins digital.
                   GOTO     INIT
 
@@ -47,23 +53,29 @@ INT_HANDLE        BCF      STATUS, RP0          ; Select Register bank 0
 
                   BTFSS    PIR1, TMR1IF         ; Did a TIMER1 interupt trigger?
                   GOTO     INT_GPI
+                  CLRF     TMR1L                ; Configure TIMER1 period.
+                  MOVLW    0xF0
+                  MOVWF    TMR1H
                   MOVF     FLASH_COUNT, F       ; Is a flashing process active?
                   BTFSC    STATUS, Z
                   GOTO     INT_TIMER1_END
-                  COMF     PORTA                ; Invert LED.
+                  MOVLW    GPIO_LED
+                  XORWF    PORTB, F             ; Invert LED.
                   DECF     FLASH_COUNT          ; Reduce flash count.
 INT_TIMER1_END    BCF      PIR1, TMR1IF
 
-INT_GPI           BTFSS    INTCON, RBIF         ; Did an input pin interupt trigger?
+INT_GPI           BTFSS    INTCON, INTF         ; Did an input pin interupt trigger?
                   GOTO     INT_END
                   MOVF     FLASH_COUNT, F       ; Is a flashing process active?
                   BTFSS    STATUS, Z
                   GOTO     INT_GPI_END
-                  CLRF     TMR1L                ; Configure full TIMER1 period.
-                  CLRF     TMR1H
+                  CLRF     TMR1L                ; Configure TIMER1 period.
+                  MOVLW    0xF0
+                  MOVWF    TMR1H
                   MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
                   MOVWF    FLASH_COUNT
-INT_GPI_END       BCF      INTCON, RBIF
+INT_GPI_END       MOVFW    PORTB                ; Allow PORTB interupt flag to be reset.
+                  BCF      INTCON, INTF
 
 INT_END           RETFIE
 
@@ -74,8 +86,10 @@ INT_END           RETFIE
 ;/*******************************/
 INIT              MOVLW    0x0F                 ; Prescale watchdog timer.
                   MOVWF    OPTION_REG
+                  MOVLW    0x07                 ; Switch comparitor off.
+                  MOVWF    CMCON
                   MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-                  MOVWF    TRISA
+                  MOVWF    TRISB
                   MOVLW    GPIO_SWITCH
 ;                  MOVWF    WPU                  ; Weak pull up on switch.
 ;                  MOVWF    IOC                  ; Interupt on change of switch state.
@@ -83,12 +97,13 @@ INIT              MOVLW    0x0F                 ; Prescale watchdog timer.
                   MOVWF    PIE1
 
                   BCF      STATUS, RP0          ; Select Register bank 0
-                  MOVLW    0x07                 ; Switch comparitor off.
-                  MOVWF    CMCON
-                  CLRF     PORTA                ; Clear GPIO port state.
-                  MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
+
+                  CLRF     PORTB                ; Clear GPIO port state.
+                  CLRF     TMR1L                ; Configure TIMER1 period.
+                  CLRF     TMR1H
+                  MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC) ; |(1 << T1CKPS0)|(1 << T1CKPS1)
                   MOVWF    T1CON                ; Configure Timer1.
-                  MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)
+                  MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)|(1 << INTE)
                   MOVWF    INTCON               ; Enable interupts.
                   CLRF     PIR1                 ; Clear interupt triggered flags.
 

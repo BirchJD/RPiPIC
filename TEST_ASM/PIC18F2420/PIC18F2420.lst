@@ -1,0 +1,208 @@
+gplink-0.13.7 beta
+Copyright (c) 1998-2005 gputils project
+Listing File Generated: 12-31-2017  00:38:03
+ 
+ 
+Address  Value    Disassembly              Source
+-------  -----    -----------              ------
+                                                             LIST     P = P18F2420
+                                           
+                                                             INCLUDE  "../INCLUDE/P18F2420.INC"
+                                                   LIST
+                                           
+                                           ;==========================================================================
+                                           ;  MPASM PIC18F2420 processor include
+                                           ; 
+                                           ;  (c) Copyright 1999-2011 Microchip Technology, All rights reserved
+                                           ;==========================================================================
+                                           
+                                                   NOLIST
+                                           
+                                                             ; Micro-controller oscilator
+                                                             CONFIG   OSC = INTIO67, IESO = OFF, LPT1OSC = OFF
+                                           
+                                                             ; Micro-controller configuration
+                                                             CONFIG   PWRT = ON, MCLRE = OFF, PBADEN = OFF, CCP2MX = PORTC, STVREN = OFF
+                                           
+                                                             ; Micro-contoller monitoring
+                                                             CONFIG   WDT = OFF, WDTPS = 512, FCMEN = OFF, BOREN = OFF, BORV = 0
+                                           
+                                                             ; Programming/Debugging
+                                                             CONFIG   DEBUG = OFF, XINST = OFF, LVP = OFF
+                                           
+                                                             ; Code Protection
+                                                             CONFIG   CP0 = OFF, CP1 = OFF, CPB = OFF, CPD = OFF
+                                           
+                                                             ; Write Protection
+                                                             CONFIG   WRT0 = OFF, WRT1 = OFF, WRTC = OFF, WRTB = OFF, WRTD = OFF
+                                           
+                                                             ; Table Read Protection
+                                                             CONFIG   EBTR0 = OFF, EBTR1 = OFF, EBTRB = OFF
+                                           
+                                           
+                                           
+                                           ;/*************/
+                                           ;/* Constants */
+                                           ;/*************/
+                                           GPIO_LED          EQU      (1 << RB5)           ; GPIO pin allocated for driving an LED.
+                                           GPIO_SWITCH       EQU      (1 << RB4)           ; GPIO pin allocated for sensing a switch press.
+                                           
+                                           DO_FLASH_COUNT    EQU      0x0006               ; Number of times to invert LED on button press.
+                                           
+                                           
+                                           
+                                           ;/******************/
+                                           ;/* RAM Registers. */
+                                           ;/******************/
+                                           CBLOCK            0x0000
+                                                             INT_W                         ; Store W register during interupt.
+                                                             INT_STATUS                    ; Store STATUS register during interupt.
+                                                             INT_BSR                       ; Store BSR register during interupt.
+                                           
+                                                             FLASH_COUNT                   ; Keep track of howmany LED inversions remain.
+                                           ENDC
+                                           
+                                           
+                                           
+                                                             CODE
+                                           
+                                           ;/**********************************/
+                                           ;/* Reset program location vector. */
+                                           ;/**********************************/
+                                                             ORG      0x000000
+                                           
+000000   0e07     movlw	0x7                                  MOVLW    0x07                 ; Switch comparitor off.
+000002   6eb4     movwf	0xb4, 0                              MOVWF    CMCON, A
+000004   ef2f     goto	0x5e                                  GOTO     INIT
+000006   f000
+                                           
+                                           
+                                           
+                                           ;/****************************************************/
+                                           ;/* Interupt program location vector, high priority. */
+                                           ;/****************************************************/
+                                                             ORG      0x000008             ; Using RETFIE S, so don't need to save register status.
+                                           
+000008   0011     retfie	0x1               HP_INT_HANDLE     RETFIE   S
+                                           
+                                           
+                                           
+                                           ;/***************************************************/
+                                           ;/* Interupt program location vector, low priority. */
+                                           ;/***************************************************/
+                                                             ORG      0x000018             ; Can not use RETFIE S as low priority interupt is using it,
+                                                                                           ; store/restore register states and just use RETFIE to return.
+000018   6e00     movwf	0, 0               LP_INT_HANDLE     MOVWF    INT_W, A             ; Store registers, to restore before returning from interupt.
+00001a   cfd8     movff	0xfd8, 0x1                           MOVFF    STATUS, INT_STATUS
+00001c   f001
+00001e   cfe0     movff	0xfe0, 0x2                           MOVFF    BSR, INT_BSR
+000020   f002
+                                           
+000022   a09e     btfss	0x9e, 0, 0                           BTFSS    PIR1, TMR1IF, A      ; Did a TIMER1 interupt trigger?
+000024   ef1c     goto	0x38                                  GOTO     INT_RBI
+000026   f000
+                                           
+000028   5203     movf	0x3, 0x1, 0                           MOVF     FLASH_COUNT, F, A    ; Is a flashing process active?
+00002a   b4d8     btfsc	0xd8, 0x2, 0                         BTFSC    STATUS, Z, A
+00002c   ef1b     goto	0x36                                  GOTO     INT_TIMER1_END
+00002e   f000
+000030   0e20     movlw	0x20                                 MOVLW    GPIO_LED
+000032   1a81     xorwf	0x81, 0x1, 0                         XORWF    PORTB, F, A          ; Invert LED.
+000034   0603     decf	0x3, 0x1, 0                           DECF     FLASH_COUNT, F, A       ; Reduce flash count.
+000036   909e     bcf	0x9e, 0, 0           INT_TIMER1_END    BCF      PIR1, TMR1IF, A
+                                           
+000038   a0f2     btfss	0xf2, 0, 0         INT_RBI           BTFSS    INTCON, RBIF, A      ; Did an input pin interupt trigger?
+00003a   ef29     goto	0x52                                  GOTO     INT_END
+00003c   f000
+                                           
+00003e   5203     movf	0x3, 0x1, 0                           MOVF     FLASH_COUNT, F, A    ; Is a flashing process active?
+000040   a4d8     btfss	0xd8, 0x2, 0                         BTFSS    STATUS, Z, A
+000042   ef27     goto	0x4e                                  GOTO     INT_RBI_END
+000044   f000
+000046   6ace     clrf	0xce, 0                               CLRF     TMR1L, A             ; Configure full TIMER1 period.
+000048   6acf     clrf	0xcf, 0                               CLRF     TMR1H, A
+00004a   0e06     movlw	0x6                                  MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
+00004c   6e03     movwf	0x3, 0                               MOVWF    FLASH_COUNT, A
+00004e   5081     movf	0x81, 0, 0          INT_RBI_END       MOVF     PORTB, W, A          ; Read PORTB to allow the interupt flag to be cleared.
+000050   90f2     bcf	0xf2, 0, 0                             BCF      INTCON, RBIF, A
+                                           
+000052   c002     movff	0x2, 0xfe0         INT_END           MOVFF    INT_BSR, BSR         ; Restore registers before returning from interupt.
+000054   ffe0
+000056   5000     movf	0, 0, 0                               MOVF     INT_W, W, A
+000058   c001     movff	0x1, 0xfd8                           MOVFF    INT_STATUS, STATUS
+00005a   ffd8
+00005c   0010     retfie	0                                   RETFIE
+                                           
+                                           
+                                           
+                                           ;/*******************************/
+                                           ;/* Initialise microcontroller. */
+                                           ;/*******************************/
+00005e   80d1     bsf	0xd1, 0, 0           INIT              BSF      WDTCON, SWDTEN, A    ; Enable watchdog timer.
+000060   0e0f     movlw	0xf                                  MOVLW    0x0F                 ; Make all pins digital.
+000062   6ec1     movwf	0xc1, 0                              MOVWF    ADCON1, A
+000064   6ac2     clrf	0xc2, 0                               CLRF     ADCON0, A            ; Switch off A/D pins, all pins digital.
+000066   6a81     clrf	0x81, 0                               CLRF     PORTB, A             ; Clear GPIO port state.
+000068   0edf     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+00006a   6e93     movwf	0x93, 0                              MOVWF    TRISB, A
+00006c   6af1     clrf	0xf1, 0                               CLRF     INTCON2, A           ; Weak pull up on switch. Set PORTB as a low pritority interupt.
+00006e   6a9f     clrf	0x9f, 0                               CLRF     IPR1, A              ; Set all interupt priorities to low priority.
+000070   6ace     clrf	0xce, 0                               CLRF     TMR1L, A             ; Configure full TIMER1 period.
+000072   6acf     clrf	0xcf, 0                               CLRF     TMR1H, A
+000074   8ed0     bsf	0xd0, 0x7, 0                           BSF      RCON, IPEN, A        ; Enable high and low priority interupt states.
+000076   0ec8     movlw	0xc8                                 MOVLW    (1 << GIEH)|(1 << GIEL)|(1 << PEIE)|(1 << RBIE)
+000078   6ef2     movwf	0xf2, 0                              MOVWF    INTCON, A            ; Enable interupts.
+00007a   0e05     movlw	0x5                                  MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC) ; |(1 << T1CKPS0)|(1 << T1CKPS1)
+00007c   6ecd     movwf	0xcd, 0                              MOVWF    T1CON, A             ; Configure Timer1.
+00007e   0e01     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
+000080   6e9d     movwf	0x9d, 0                              MOVWF    PIE1, A
+000082   6a81     clrf	0x81, 0                               CLRF     PORTB, A             ; Clear PORTB to allow the interupt flag to be cleared.
+000084   90f2     bcf	0xf2, 0, 0                             BCF      INTCON, RBIF, A
+000086   6a9e     clrf	0x9e, 0                               CLRF     PIR1, A              ; Clear interupt triggered flags.
+                                           
+000088   6a03     clrf	0x3, 0                                CLRF     FLASH_COUNT, A       ; Clear the flash count RAM register.
+                                           
+00008a   0003     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+00008c   0004     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+00008e   5203     movf	0x3, 0x1, 0                           MOVF     FLASH_COUNT, F, A    ; Is a flashing process active?
+000090   a4d8     btfss	0xd8, 0x2, 0                         BTFSS    STATUS, Z, A
+000092   ef46     goto	0x8c                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
+000094   f000
+000096   ef45     goto	0x8a                                  GOTO     LOOP                 ; Infinite main loop.
+000098   f000
+                                           
+                                           
+                                           
+                                           ;/*********************************/
+                                           ;/* Write data to data area test. */
+                                           ;/*********************************/
+                                                             ORG      0x200000             ; Area for PIC USER ID - compiler will complain.
+                                           
+200000   5555     subfwb	0x55, 0, 0x1                        DE       0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55
+200002   5555     subfwb	0x55, 0, 0x1      
+200004   5555     subfwb	0x55, 0, 0x1      
+200006   5555     subfwb	0x55, 0, 0x1      
+                                           
+                                           
+                                           
+                                                             ORG      0x400000             ; EEPROM Area.
+                                           
+400000   bbaa     btfsc	0xaa, 0x5, 0x1                       DE       0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
+400002   ddcc     rcall	0x3ffb9c           
+400004   ffee     dw	0xffee  ;unknown opcode 
+                                           
+                                           
+                                                             ORG      0x400050             ; EEPROM Area.
+                                           
+400050   0100     movlb	0                                    DE       0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+400052   0302     mulwf	0x2, 0x1           
+400054   0504     decf	0x4, 0, 0x1         
+400056   0706     decf	0x6, 0x1, 0x1       
+400058   0908     iorlw	0x8                                  DE       0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+40005a   0b0a     andlw	0xa                
+40005c   0d0c     mullw	0xc                
+40005e   0f0e     addlw	0xe                
+                                           
+                                           
+                                                             END
+                                           

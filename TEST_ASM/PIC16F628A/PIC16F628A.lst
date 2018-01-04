@@ -1,6 +1,6 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 5-12-2017  19:18:16
+Listing File Generated: 12-30-2017  22:47:23
  
  
 Address  Value    Disassembly              Source
@@ -25,8 +25,8 @@ Address  Value    Disassembly              Source
                                            ;/*************/
                                            ;/* Constants */
                                            ;/*************/
-                                           GPIO_LED          EQU      (1 << RB0)           ; GPIO pin allocated for driving an LED.
-                                           GPIO_SWITCH       EQU      (1 << RB1)           ; GPIO pin allocated for sensing a switch press.
+                                           GPIO_LED          EQU      (1 << RB1)           ; GPIO pin allocated for driving an LED.
+                                           GPIO_SWITCH       EQU      (1 << RB0)           ; GPIO pin allocated for sensing a switch press.
                                            
                                            DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
                                            
@@ -50,7 +50,7 @@ Address  Value    Disassembly              Source
                                            
 000000   1683     bsf	0x3, 0x5                               BSF      STATUS, RP0          ; Select Register bank 1
                                            ;                  CLRF     ANSEL                ; Switch off A/D pins, all pins digital.
-000001   2818     goto	0x18                                  GOTO     INIT
+000001   281a     goto	0x1a                                  GOTO     INIT
                                            
                                            
                                            
@@ -62,60 +62,64 @@ Address  Value    Disassembly              Source
 000004   1283     bcf	0x3, 0x5             INT_HANDLE        BCF      STATUS, RP0          ; Select Register bank 0
                                            
 000005   1c0c     btfss	0xc, 0                               BTFSS    PIR1, TMR1IF         ; Did a TIMER1 interupt trigger?
-000006   280d     goto	0xd                                   GOTO     INT_GPI
+000006   280e     goto	0xe                                   GOTO     INT_GPI
 000007   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
 000008   1903     btfsc	0x3, 0x2                             BTFSC    STATUS, Z
-000009   280c     goto	0xc                                   GOTO     INT_TIMER1_END
-00000a   0985     comf	0x5, f                                COMF     PORTA                ; Invert LED.
-00000b   03a0     decf	0x20, f                               DECF     FLASH_COUNT          ; Reduce flash count.
-00000c   100c     bcf	0xc, 0               INT_TIMER1_END    BCF      PIR1, TMR1IF
+000009   280d     goto	0xd                                   GOTO     INT_TIMER1_END
+00000a   3002     movlw	0x2                                  MOVLW    GPIO_LED
+00000b   0686     xorwf	0x6, f                               XORWF    PORTB, F             ; Invert LED.
+00000c   03a0     decf	0x20, f                               DECF     FLASH_COUNT          ; Reduce flash count.
+00000d   100c     bcf	0xc, 0               INT_TIMER1_END    BCF      PIR1, TMR1IF
                                            
-00000d   1c0b     btfss	0xb, 0             INT_GPI           BTFSS    INTCON, RBIF         ; Did an input pin interupt trigger?
-00000e   2817     goto	0x17                                  GOTO     INT_END
-00000f   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-000010   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
-000011   2816     goto	0x16                                  GOTO     INT_GPI_END
-000012   018e     clrf	0xe                                   CLRF     TMR1L                ; Configure full TIMER1 period.
-000013   018f     clrf	0xf                                   CLRF     TMR1H
-000014   3006     movlw	0x6                                  MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
-000015   00a0     movwf	0x20                                 MOVWF    FLASH_COUNT
-000016   100b     bcf	0xb, 0               INT_GPI_END       BCF      INTCON, RBIF
+00000e   1c8b     btfss	0xb, 0x1           INT_GPI           BTFSS    INTCON, INTF         ; Did an input pin interupt trigger?
+00000f   2819     goto	0x19                                  GOTO     INT_END
+000010   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
+000011   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+000012   2818     goto	0x18                                  GOTO     INT_GPI_END
+000013   018e     clrf	0xe                                   CLRF     TMR1L                ; Configure full TIMER1 period.
+000014   018f     clrf	0xf                                   CLRF     TMR1H
+000015   3006     movlw	0x6                                  MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
+000016   00a0     movwf	0x20                                 MOVWF    FLASH_COUNT
+000017   0806     movf	0x6, w                                MOVFW    PORTB                ; Allow PORTB interupt flag to be cleared.
+000018   108b     bcf	0xb, 0x1             INT_GPI_END       BCF      INTCON, INTF
                                            
-000017   0009     retfie                   INT_END           RETFIE
+000019   0009     retfie                   INT_END           RETFIE
                                            
                                            
                                            
                                            ;/*******************************/
                                            ;/* Initialise microcontroller. */
                                            ;/*******************************/
-000018   300f     movlw	0xf                INIT              MOVLW    0x0F                 ; Prescale watchdog timer.
-000019   0081     movwf	0x1                                  MOVWF    OPTION_REG
-00001a   30fe     movlw	0xfe                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-00001b   0085     movwf	0x5                                  MOVWF    TRISA
-00001c   3002     movlw	0x2                                  MOVLW    GPIO_SWITCH
+00001a   30fd     movlw	0xfd               INIT              MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+00001b   0086     movwf	0x6                                  MOVWF    TRISB
+                                           ;                  MOVLW    GPIO_SWITCH
                                            ;                  MOVWF    WPU                  ; Weak pull up on switch.
                                            ;                  MOVWF    IOC                  ; Interupt on change of switch state.
-00001d   3001     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
-00001e   008c     movwf	0xc                                  MOVWF    PIE1
+00001c   300f     movlw	0xf                                  MOVLW    0x0F                 ; Prescale watchdog timer. Weak pull up on switch.
+00001d   0081     movwf	0x1                                  MOVWF    OPTION_REG
+00001e   3001     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
+00001f   008c     movwf	0xc                                  MOVWF    PIE1
                                            
-00001f   1283     bcf	0x3, 0x5                               BCF      STATUS, RP0          ; Select Register bank 0
+000020   1283     bcf	0x3, 0x5                               BCF      STATUS, RP0          ; Select Register bank 0
                                            ;                  MOVLW    0x07                 ; Switch comparitor off.
                                            ;                  MOVWF    CMCON
-000020   0185     clrf	0x5                                   CLRF     PORTA                ; Clear GPIO port state.
-000021   3035     movlw	0x35                                 MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
-000022   0090     movwf	0x10                                 MOVWF    T1CON                ; Configure Timer1.
-000023   30c8     movlw	0xc8                                 MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)
-000024   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
-000025   018c     clrf	0xc                                   CLRF     PIR1                 ; Clear interupt triggered flags.
+000021   0186     clrf	0x6                                   CLRF     PORTB                ; Allow PORTB interupt flag to be cleared.
+000022   018e     clrf	0xe                                   CLRF     TMR1L                ; Configure full TIMER1 period.
+000023   018f     clrf	0xf                                   CLRF     TMR1H
+000024   3035     movlw	0x35                                 MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
+000025   0090     movwf	0x10                                 MOVWF    T1CON                ; Configure Timer1.
+000026   30d8     movlw	0xd8                                 MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)|(1 << INTE)
+000027   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
+000028   018c     clrf	0xc                                   CLRF     PIR1                 ; Clear interupt triggered flags.
                                            
-000026   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+000029   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
                                            
-000027   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
-000028   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
-000029   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-00002a   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
-00002b   2828     goto	0x28                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
-00002c   2827     goto	0x27                                  GOTO     LOOP                 ; Infinite main loop.
+00002a   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+00002b   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+00002c   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
+00002d   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+00002e   282b     goto	0x2b                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
+00002f   282a     goto	0x2a                                  GOTO     LOOP                 ; Infinite main loop.
                                            
                                            
                                            
