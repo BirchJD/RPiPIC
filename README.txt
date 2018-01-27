@@ -7,10 +7,16 @@
 #/* Python PIC Microcontroller Programmer.                                   */
 #/*                                                                          */
 #/* Currently supported devices:                                             */
-#/* READ_DEV_ID     12F629          12F675          12F683          16F628A  */
-#/* 16F630          16F684          16F690          16F886          18F2420  */
-#/* 18F2455         18F2520         18F2550         18F4420         18F4455  */
-#/* 18F4520         18F4550                                                  */
+#/*                                                                          */
+#/* 12F629          12F675          12F683                                   */
+#/*                                                                          */
+#/* 16F88           16F627          16F628A         16F630          16F684   */
+#/* 16F690          16F876A         16F877A         16F886          16F887   */
+#/* 16F18313        16F18323        16F18324        16F18344        16F18325 */
+#/* 16F18345        16F18326        16F18346                                 */
+#/*                                                                          */
+#/* 18F2420         18F2455         18F2520         18F2550         18F4420  */
+#/* 18F4455         18F4520         18F4550                                  */
 #/*                                                                          */
 #/* Additional devices can be added in the PIC_DEVICES.py file.              */
 #/****************************************************************************/
@@ -55,15 +61,20 @@ gplib
 
 PIC Microchip Hardware Requirements
 ===================================
-VPP 12.75V 100 mA - Varys from device to device, see device specifications.
+VPP 12.75V 100 mA
+Varies from device to device, see device specifications.
+
 VDD >=2.0V <=6.5V += 0.25V 40 mA
+Officially Microchip specifies to verify the device is programmed by verifying
+at each voltage between 2V and 6.5V in steps of 0.25V. When not verified in
+this way the device is considered programmed for development purposes.
 
 While programming a device it maybe required to pull a pin named PGM low using
-a high value resistor, to prevent it floating and interfeering with the
+a high value resistor, to prevent it floating and interfering with the
 programming process.
 
 
-Raspberry Pi GPIO Requiements
+Raspberry Pi GPIO Requirements
 -----------------------------
 OUTPUT      VDD Switch
 OUTPUT      PRG Switch
@@ -138,15 +149,22 @@ http://www.newsdownload.co.uk/
     │   ├── P12F629.INC
     │   ├── P12F675.INC
     │   ├── P12F683.INC
+    │   ├── P16F88.INC
     │   ├── P16F627.INC
     │   ├── P16F628A.INC
     │   ├── P16F630.INC
     │   ├── P16F684.INC
     │   ├── P16F690.INC
     │   ├── P16F876A.INC
+    │   ├── P16F877a.INC
     │   ├── P16F886.INC
-    │   ├── P16F88.INC
-    │   └── P18F2520.INC
+    │   ├── P16F887.INC
+    │   ├── P16F18346.INC
+    │   ├── P18F2420.INC
+    │   ├── P18F2455.INC
+    │   ├── P18F2520.INC
+    │   ├── P18F4520.INC
+    │   └── P18F4550.INC
     ├── PIC12F629        - Example application for a PIC Microchip PIC12F629
     │   ├── Build.sh
     │   ├── PIC12F629.asm
@@ -156,6 +174,9 @@ http://www.newsdownload.co.uk/
     ├── PIC12F683        - Example application for a PIC Microchip PIC12F683
     │   ├── Build.sh
     │   ├── PIC12F683.asm
+    ├── PIC16F88         - Example application for a PIC Microchip PIC16F88
+    │   ├── Build.sh
+    │   ├── PIC16F88.asm
     ├── PIC16F627        - Example application for a PIC Microchip PIC16F627
     │   ├── Build.sh
     │   ├── PIC16F627.asm
@@ -174,15 +195,24 @@ http://www.newsdownload.co.uk/
     ├── PIC16F876A       - Example application for a PIC Microchip PIC16F876A
     │   ├── Build.sh
     │   ├── PIC16F876A.asm
-    ├── PIC16F88         - Example application for a PIC Microchip PIC16F88
-    │   ├── Build.sh
-    │   ├── PIC16F88.asm
     ├── PIC16F886        - Example application for a PIC Microchip PIC16F886
     │   ├── Build.sh
     │   ├── PIC16F886.asm
-    └── PIC18F2520       - Example application for a PIC Microchip PIC18F2520
+    ├── PIC16F876A       - Example application for a PIC Microchip PIC16F876A
+    │   ├── Build.sh
+    │   ├── PIC16F876A.asm
+    ├── PIC16F877A       - Example application for a PIC Microchip PIC16F877A
+    │   ├── Build.sh
+    │   ├── PIC16F877A.asm
+    ├── PIC18F2520       - Example application for a PIC Microchip PIC18F2520
+    │   ├── Build.sh
+    │   ├── PIC18F2520.asm
+    ├── PIC18F4550       - Example application for a PIC Microchip PIC18F4550
+    │   ├── Build.sh
+    │   ├── PIC18F4550.asm
+    └── PIC16F18346      - Example application for a PIC Microchip PIC16F18346
         ├── Build.sh
-        └── PIC18F2520.asm
+        └── PIC16F18346.asm
 
 
 
@@ -195,10 +225,10 @@ PIC.py project file to the GPIO allocation used.
 
 Adding Devices
 --------------
-The file PIC_DEVICES.py contains definitions of the memory map for each suported
-PIC device. PIC devices can be added by creating an additional memory map for
-the device. There are a few reasons why a particular PIC device may not work
-with the current release of this software.
+The file PIC_DEVICES.py contains definitions of the memory map for each
+supported PIC device. PIC devices can be added by creating an additional memory
+map for the device. There are a few reasons why a particular PIC device may not
+work with the current release of this software.
 
 1. There are several programming process specifications, the specifications
    for most of the PIC12F, PIC16F and PIC18F, are currently implemented.
@@ -246,7 +276,7 @@ Next the memory region type, PICMEM_DATA data memory read and writable
 by a program. PICMEM_PROG program memory. PICMEM_CONF device configuration
 memory.
 
-Next the memory region segment name, e.g. PICMEM_OSC_CAL oscilator calibration
+Next the memory region segment name, e.g. PICMEM_OSC_CAL oscillator calibration
 word. If PICMEM_ST is specified, this application will read the value of the
 memory before erasing, and where PICMEM_RE is specified the value will be
 restored here after erasing.
@@ -266,4 +296,20 @@ defined in the specification, that value must be used.
 The last value is the configuration mask, used to prevent verification errors
 where configuration bits are unsettable, and always read as a 0 or 1.
 This has not been implemented currently.
+
+
+
+RELEASE TEST PROCEDURE
+======================
+Perform the following procedure on each supported device to verify operation
+before checking in to source control.
+
+./RPiPIC.py -E 16F877A
+./RPiPIC.py -B 16F877A
+./RPiPIC.py -W 16F877A TEST_ASM/PIC16F877A/PIC16F877A.hex
+./RPiPIC.py -B 16F877A
+./RPiPIC.py -V 16F877A TEST_ASM/PIC16F877A/PIC16F877A.hex
+./RPiPIC.py -D 16F877A
+./RPiPIC.py -P
+./RPiPIC.py -O
 

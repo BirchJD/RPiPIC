@@ -52,9 +52,9 @@ ARG_DATA = 4
 #/***********************/
 #/* Blank test results. */
 #/***********************/
-BLANK_FAIL = 0
-BLANK_PASS = 1
-BLANK_PROTECTED = 2
+BLANK_FAIL      = 1000.0
+BLANK_PASS      = 2000.0
+BLANK_PROTECTED = 3000.0
 
 
 #/************************/
@@ -82,7 +82,7 @@ def ProgramRead(PicDevice, Address, WordCount, ConfigData):
    if ConfigData:
       PIC_API.ConfigMode(PicDevice, PIC_API.PIC_BLANK_CONFIG_WORD)
 
-   PIC_API.Seek(PicDevice, Address)
+   PIC_API.Seek(PicDevice, Address, PIC_API.SEEK_SET)
 
    Data = []
    for Count in range(WordCount):
@@ -105,7 +105,7 @@ def ProgramRead(PicDevice, Address, WordCount, ConfigData):
 def DataRead(PicDevice, Address, WordCount):
    PIC_API.ProgramModeStart(PicDevice)
 
-   PIC_API.Seek(PicDevice, Address)
+   PIC_API.Seek(PicDevice, Address, PIC_API.SEEK_SET)
 
    Data = []
    for Count in range(WordCount):
@@ -143,13 +143,14 @@ def ProgramWrite(PicDevice, WriteMemoryMap, PulseCount):
 
          ConfigMode = False
          if     WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_TYPE] & PIC_DEVICES.PICMEM_CONF \
-            and WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_WO):
+            and WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_WO) \
+            and PicDevice not in ["16F18313", "16F18323", "16F18324", "16F18344", "16F18325", "16F18345", "16F18326", "16F18346"]:
             print(">>> CONFIG MODE <<<")
             ConfigMode = True
             PIC_API.ConfigMode(PicDevice, PIC_API.PIC_BLANK_CONFIG_WORD)
 
          Address = WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_ADDR]
-         PIC_API.Seek(PicDevice, Address)
+         PIC_API.Seek(PicDevice, Address, PIC_API.SEEK_SET)
          StepCount = 1
          if WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_TYPE] & PIC_DEVICES.PICMEM_DATA:
             sys.stdout.write("DATA {:08X} : ".format(Address))
@@ -166,7 +167,7 @@ def ProgramWrite(PicDevice, WriteMemoryMap, PulseCount):
                and WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][DataCount] != DeviceBlankDataWord \
                and DataCount < len(WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA]):
                if SeekOffset > 0:
-                  PIC_API.Seek(PicDevice, SeekOffset, True)
+                  PIC_API.Seek(PicDevice, SeekOffset, PIC_API.SEEK_OFFSET)
                   SeekOffset = 0
                sys.stdout.write("{:4X} ".format(WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][DataCount]))
                PicDataWord = WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][DataCount]
@@ -181,14 +182,15 @@ def ProgramWrite(PicDevice, WriteMemoryMap, PulseCount):
                        and WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][DataCount + 1] != DeviceBlankProgWord)) \
                and DataCount < len(WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA]):
                if SeekOffset > 0:
-                  PIC_API.Seek(PicDevice, SeekOffset, True)
+                  PIC_API.Seek(PicDevice, SeekOffset, PIC_API.SEEK_OFFSET)
                   SeekOffset = 0
                PicDataWord = WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][DataCount]
                if StepCount == 2:
                   PicDataWord = PicDataWord | (WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][DataCount + 1] << 8)
                sys.stdout.write("{:4X} ".format(PicDataWord))
                if     WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_TYPE] & PIC_DEVICES.PICMEM_CONF \
-                  and PicDevice[:3] in ["18F"]:
+                  and (PicDevice[:3] in ["18F"]
+                       or PicDevice in ["16F18313", "16F18323", "16F18324", "16F18344", "16F18325", "16F18345", "16F18326", "16F18346"]):
                   PIC_API.ProgramConfigLocation(PicDevice, Address + DataCount, PicDataWord, PulseCount)
                   Verify = PIC_API.ReadConfigLocation(PicDevice, Address + DataCount, StepCount)
                else:
@@ -258,16 +260,18 @@ def BlankCheck(PicDevice, BlankWordValue, Data):
    PIC_API.ProgramModeStart(PicDevice)
 
    ZeroCheck = True
+   FailCount = 0.0
    Result = BLANK_PASS
    for Count in range(len(Data)):
       if Data[Count] != 0:
          ZeroCheck = False
-      if ZeroCheck == False and Data[Count] != BlankWordValue:
-         Result = BLANK_FAIL
-         break
+      if Data[Count] != BlankWordValue:
+         FailCount = FailCount + 1
 
    if ZeroCheck == True:
       Result = BLANK_PROTECTED
+   elif FailCount > 0:
+      Result = BLANK_FAIL + (100 * FailCount / len(Data))
 
    PIC_API.ProgramModeEnd()
    return Result
@@ -415,7 +419,7 @@ def MergeMemoryMap(PicDevice, WriteMemoryMap, HexFileData):
       for FindCount in range(len(WriteMemoryMap)):
          if     HexFileData[Count][HEX_File.ADDRESS] >= WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR] \
             and HexFileData[Count][HEX_File.ADDRESS] + len(HexFileData[Count][HEX_File.DATA]) <= WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR] + WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_SIZE] * StepCount:
-            sys.stdout.write("{:08X} ".format(WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_ADDR]))
+            sys.stdout.write("{:08X}".format(WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_ADDR]))
             Offset = HexFileData[Count][HEX_File.ADDRESS] - WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR]
             Offset = Offset / StepCount
             sys.stdout.write(" + {:08X} : ".format(Offset))
@@ -433,6 +437,7 @@ def MergeMemoryMap(PicDevice, WriteMemoryMap, HexFileData):
                WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][Offset + DataCount] = string.atoi(PicDataWord, 16)
 
                DataCount = DataCount + 1
+            sys.stdout.write("{:12}".format(""))
       print("")
    print("")
 
@@ -497,7 +502,7 @@ elif len(sys.argv) < ARG_COUNT:
    print("")
    print("TODO: Implement configuration mask.")
    print("TODO: Implement HEX dump for extended addresses.")
-   print("TODO: Implement device ID look-up.")
+   print("TODO: Complete device ID look-up.")
    print("TODO: Add additional devices and example test code.")
    print("")
    print(sys.argv[ARG_EXE] + " -P")
@@ -557,9 +562,9 @@ else:
 # /* Check if a memory map definition has been found. */
 #/****************************************************/
       if len(MemoryMap) == 0:
-         print("Device: " + ThisPicDevice + " Not Found.\n")
+         print("SPECIFIED DEVICE: " + ThisPicDevice + " NOT CURRENTLY SUPPORTED.\n")
       else:
-         print("Device: " + ThisPicDevice + "\n")
+         print("SPECIFIED DEVICE: " + ThisPicDevice + "\n")
          if ThisPicDevice[:3] in ["12F", "16F"]:
             DeviceBlankProgWord = PIC_API.PIC_BLANK_PROG_WORD
             DeviceBlankDataWord = PIC_API.PIC_BLANK_DATA_WORD
@@ -576,7 +581,7 @@ else:
                if MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_RO):
                   print(PIC_DEVICES.Lookup(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE]))
                   Data = GetDeviceData(ThisPicDevice, MemoryMap, Count)
-                  if len(Data) == 0:
+                  if len(Data) == 0 or Data[0] == PIC_API.PIC_UNKNOWN_WORD:
                      print("UNKNOWN MEMORY TYPE\n")
                   else:
                      Checksum = Checksum + ChecksumData(Data)
@@ -590,7 +595,7 @@ else:
                   or len(sys.argv) > ARG_COUNT and PIC_DEVICES.LookupName(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE]) == sys.argv[ARG_MEM_AREA] and MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_RO):
                   print(PIC_DEVICES.Lookup(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE]))
                   Data = GetDeviceData(ThisPicDevice, MemoryMap, Count)
-                  if len(Data) == 0:
+                  if len(Data) == 0 or Data[0] == PIC_API.PIC_UNKNOWN_WORD:
                      print("UNKNOWN MEMORY TYPE\n")
                   else:
                      DisplayData(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR], Data)
@@ -605,7 +610,7 @@ else:
                if MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_WO):
                   print(PIC_DEVICES.Lookup(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE]))
                   Data = GetDeviceData(ThisPicDevice, MemoryMap, Count)
-                  if len(Data) == 0:
+                  if len(Data) == 0 or Data[0] == PIC_API.PIC_UNKNOWN_WORD:
                      print("UNKNOWN MEMORY TYPE\n")
                   else:
                      HexData.append(HexDataFromMemoryMap(MemoryMap[Count], Data))
@@ -630,7 +635,7 @@ else:
                if MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_RO):
                   print(PIC_DEVICES.Lookup(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE]))
                   Data = GetDeviceData(ThisPicDevice, MemoryMap, Count)
-                  if len(Data) == 0:
+                  if len(Data) == 0 or Data[0] == PIC_API.PIC_UNKNOWN_WORD:
                      print("UNKNOWN MEMORY TYPE\n")
                   else:
                      ProgramVerify(ThisPicDevice, MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR], Data, HexFileData)
@@ -678,7 +683,7 @@ else:
                   Data = GetDeviceData(ThisPicDevice, MemoryMap, Count)
                   
                   Result = False
-                  if len(Data) == 0:
+                  if len(Data) == 0 or Data[0] == PIC_API.PIC_UNKNOWN_WORD:
                      print("UNKNOWN MEMORY TYPE\n")
                      continue
                   elif MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & PIC_DEVICES.PICMEM_DATA:
@@ -686,11 +691,11 @@ else:
                   else:
                      Result = BlankCheck(ThisPicDevice, DeviceBlankProgWord, Data)
 
-                  if Result == BLANK_PASS:
+                  if int(Result / 1000) == int(BLANK_PASS / 1000):
                      print("{:08X} -> {:08X} : BLANK".format(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR], (MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR] + MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE])))
-                  elif Result == BLANK_FAIL:
-                     print("{:08X} -> {:08X} : !NOT BLANK!".format(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR], (MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR] + MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE])))
-                  elif Result == BLANK_PROTECTED:
+                  elif int(Result / 1000) == int(BLANK_FAIL / 1000):
+                     print("{:08X} -> {:08X} : {:.4}% USED !NOT BLANK!".format(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR], (MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR] + MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE]), Result - BLANK_FAIL))
+                  elif int(Result / 1000) == int(BLANK_PROTECTED / 1000):
                      print("{:08X} -> {:08X} : !PROTECTED!".format(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR], (MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR] + MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE])))
 
                   print("")
@@ -716,6 +721,22 @@ else:
 #/******************************/
          else:
             print("INVALID ARGUMENTS PROVIDED\n")
+
+#  /*************************************/
+# /* Identify device currently in use. */
+#/*************************************/
+         if ThisPicDevice != "":
+            for Count in range(len(MemoryMap)):
+               if len(sys.argv) >= ARG_COUNT and PIC_DEVICES.LookupName(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE]) == "CONFIG:DEV_ID" and MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & (PIC_DEVICES.PICMEM_RW | PIC_DEVICES.PICMEM_RO):
+                  print(PIC_DEVICES.Lookup(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE]))
+                  Data = GetDeviceData(ThisPicDevice, MemoryMap, Count)
+                  if len(Data) == 0 or (Data[0] & 0x3FE0) not in PIC_DEVICES.LookupDeviceID or Data[0] == DeviceBlankProgWord:
+                     print("CURRENT DEVICE UNKNOWN TYPE: {:X}\n".format(Data[0]))
+                  else:
+                     LookupPicDevice = PIC_DEVICES.LookupDeviceID[Data[0] & 0x3FE0]
+                     if ThisPicDevice != LookupPicDevice:
+                        print("***** WARNING ***** {:} != {:}".format(ThisPicDevice, LookupPicDevice))
+                     print("CURRENT DEVICE TYPE: [{:X}] {:} REV:{:}\n".format(Data[0] & 0x3FE0, LookupPicDevice, Data[0] & 0x001F))
 
 #  /*************************************************/
 # /* Close Raspberry Pi GPIO use before finishing. */

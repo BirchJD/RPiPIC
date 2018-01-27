@@ -66,6 +66,7 @@ PIC_DELAY_EEPROM_PROGRAM_18F = 1 / 10000.0
 #/************************************/
 #/* PIC Memory location definitions. */
 #/************************************/
+PIC_UNKNOWN_WORD = 0xFFFF
 PIC_BLANK_CONFIG_WORD = 0xFFFF
 PIC_BLANK_PROG_WORD = 0x3FFF
 PIC_BLANK_PROG_WORD_18F = 0x00FF
@@ -94,6 +95,7 @@ PIC_OUT_DATA_1 = 0
 #/*******************************************/
 PIC_CMD_BIT_COUNT = 6
 PIC_DATA_BIT_COUNT = 16
+PIC_ADDRESS_BIT_COUNT = 24
 
 PIC_CMD_LOAD_CONFIG      = 0x00
 PIC_CMD_ERASE_SETUP1     = 0x01
@@ -101,16 +103,18 @@ PIC_CMD_LOAD_PROG        = 0x02
 PIC_CMD_LOAD_DATA        = 0x03
 PIC_CMD_READ_PROG        = 0x04
 PIC_CMD_READ_DATA        = 0x05
+PIC_CMD_ROW_ERASE_PROG   = 0x05
 PIC_CMD_INC_ADDRESS      = 0x06
 PIC_CMD_ERASE_SETUP2     = 0x07
 PIC_CMD_BEGIN_ERASE_PROG = 0x08
 PIC_CMD_ERASE_PROG_MEM   = 0x09
-PIC_CMD_END_PROGRAMMING_1= 0x0A
+PIC_CMD_END_PROGRAMMING  = 0x0A
 PIC_CMD_ERASE_DATA_MEM   = 0x0B
 PIC_CMD_END_PROGRAM      = 0x0E
 PIC_CMD_ROW_ERASE_PROG   = 0x11
 PIC_CMD_END_PROGRAMMING  = 0x17
 PIC_CMD_BEGIN_PROG_ONLY  = 0x18
+PIC_CMD_LOAD_PC_ADDRESS  = 0x1D
 PIC_CMD_CHIP_ERASE       = 0x1F
 
 
@@ -158,7 +162,7 @@ def DataRead(BitCount):
 
 
 def DataWrite(PicDataWord, BitCount):
-   if BitCount == PIC_DATA_BIT_COUNT:
+   if BitCount == PIC_DATA_BIT_COUNT or BitCount == PIC_ADDRESS_BIT_COUNT:
       PicDataWord = PicDataWord * 2
 
    time.sleep(SLEEP_DATA)
@@ -213,6 +217,12 @@ def CmdReadData():
    PicDataWord = DataRead(PIC_DATA_BIT_COUNT)
 
    return PicDataWord
+
+
+
+def CmdLoadPcAddress(PicDataWord):
+   DataWrite(PIC_CMD_LOAD_PC_ADDRESS, PIC_CMD_BIT_COUNT)
+   DataWrite(PicDataWord, PIC_ADDRESS_BIT_COUNT)
 
 
 

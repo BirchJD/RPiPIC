@@ -33,6 +33,11 @@ import RPi.GPIO
 import PIC
 
 
+SEEK_SET    = 0x01
+SEEK_INC    = 0x02
+SEEK_OFFSET = 0x04
+
+PIC_UNKNOWN_WORD = PIC.PIC_UNKNOWN_WORD
 PIC_BLANK_CONFIG_WORD = PIC.PIC_BLANK_CONFIG_WORD
 PIC_BLANK_PROG_WORD = PIC.PIC_BLANK_PROG_WORD
 PIC_BLANK_PROG_WORD_18F = PIC.PIC_BLANK_PROG_WORD_18F
@@ -115,14 +120,17 @@ def IncLocation():
 
 
 
-def Seek(PicDevice, Address, IsOffset = False):
+def Seek(PicDevice, Address, SeekType = SEEK_INC):
    sys.stdout.write("\n")
-   if IsOffset == True:
+   if SeekType == SEEK_OFFSET:
       OffsetChar = "+"
    else:
       OffsetChar = ""
 
-   if PicDevice[:3] in ["12F", "16F"]:
+   if PicDevice in ["16F18313", "16F18323", "16F18324", "16F18344", "16F18325", "16F18345", "16F18326", "16F18346"] and SeekType == SEEK_SET:
+      sys.stdout.write("SEEK SET {:08X}\n".format(Address))
+      PIC.CmdLoadPcAddress(Address)
+   elif PicDevice[:3] in ["12F", "16F"]:
       Count = 0
       for Count in range(Address):
          if Count % 100 == 0:
@@ -189,6 +197,8 @@ def EraseAllMemory(PicDevice):
       elif PicDevice in ["16F627"]:
          EraseAllProcess_1()
       else:
+         if PicDevice in ["16F18313", "16F18323", "16F18324", "16F18344", "16F18325", "16F18345", "16F18326", "16F18346"]:
+            Seek(PicDevice, 0xE800, SEEK_SET)
          EraseProgramMemory()
          ConfigMode(PicDevice, PIC_BLANK_CONFIG_WORD)
          EraseProgramMemory()
@@ -219,6 +229,7 @@ def ReadConfigLocation(PicDevice, Address, Bytes = 1):
 
 
 def ReadProgLocation(PicDevice, Address, Bytes = 1):
+   Data = 0
    if PicDevice[:3] in ["12F", "16F"]:
       Data = (PIC.CmdReadProg() & PIC.PIC_BLANK_PROG_WORD)
       IncLocation()
@@ -231,7 +242,10 @@ def ReadProgLocation(PicDevice, Address, Bytes = 1):
 
 
 def ReadDataLocation(PicDevice, Address):
-   if PicDevice[:3] in ["12F", "16F"]:
+   Data = 0
+   if PicDevice in ["16F18313", "16F18323", "16F18324", "16F18344", "16F18325", "16F18345", "16F18326", "16F18346"]:
+      Data = ReadProgLocation(PicDevice, Address)
+   elif PicDevice[:3] in ["12F", "16F"]:
       Data = (PIC.CmdReadData() & PIC.PIC_BLANK_DATA_WORD)
       IncLocation()
    elif PicDevice[:3] in ["18F"]:
@@ -243,6 +257,8 @@ def ReadDataLocation(PicDevice, Address):
 def ProgramConfigLocation(PicDevice, Address, PicDataWord, PulseCount):
    if PicDevice[:3] in ["12F", "16F"]:
       PIC.CmdLoadConfig(PicDataWord)
+      if PicDevice in ["16F18313", "16F18323", "16F18324", "16F18344", "16F18325", "16F18345", "16F18326", "16F18346"]:
+         Seek(PicDevice, Address - 0x8000)
 # Pulse loop for Flash memory programming.
 # For EEPROM memory, PulseCount = 1.
       for Count in range(PulseCount):
@@ -281,7 +297,9 @@ def ProgramMemoryLocation(PicDevice, Address, PicDataWord, PulseCount, ConfigMod
 
 
 def ProgramDataLocation(PicDevice, Address, PicDataWord, PulseCount):
-   if PicDevice[:3] in ["12F", "16F"]:
+   if PicDevice in ["16F18313", "16F18323", "16F18324", "16F18344", "16F18325", "16F18345", "16F18326", "16F18346"]:
+      Data = ProgramMemoryLocation(PicDevice, Address, PicDataWord, PulseCount)
+   elif PicDevice[:3] in ["12F", "16F"]:
       PIC.CmdLoadData(PicDataWord)
 # Pulse loop for Flash memory programming.
 # For EEPROM memory, PulseCount = 1.
