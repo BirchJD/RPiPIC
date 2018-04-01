@@ -131,6 +131,7 @@ def ProgramWrite(PicDevice, WriteMemoryMap, PulseCount):
 
    print(">>>>> WRITING TO DEVICE\n")
    for FindCount in range(len(WriteMemoryMap)):
+      WriteCount = 0
       if FailCount > PROGRAM_WRITE_MAX_FAILS:
          break
 
@@ -173,6 +174,7 @@ def ProgramWrite(PicDevice, WriteMemoryMap, PulseCount):
                PicDataWord = WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_DATA][DataCount]
                PIC_API.ProgramDataLocation(PicDevice, Address + DataCount, PicDataWord, PulseCount)
                Verify = PIC_API.ReadDataLocation(PicDevice, Address + DataCount)
+               WriteCount += 1
                if PicDataWord != Verify:
                   FailCount += 1
                   sys.stdout.write(" *{:4X} != {:4X}* ".format(PicDataWord, Verify))
@@ -196,12 +198,15 @@ def ProgramWrite(PicDevice, WriteMemoryMap, PulseCount):
                else:
                   PIC_API.ProgramMemoryLocation(PicDevice, Address + DataCount, PicDataWord, PulseCount, ConfigMode and WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_TYPE] & PIC_DEVICES.PICMEM_CONFIG)
                   Verify = PIC_API.ReadProgLocation(PicDevice, Address + DataCount, StepCount)
+               WriteCount += 1
                if PicDataWord != Verify:
                   FailCount += 1
                   sys.stdout.write("\n****** {:08X} : {:4X} != {:4X} [{:}] ******\n".format(Address + DataCount, PicDataWord, Verify, FailCount))
             else:
                SeekOffset = SeekOffset + 1
             sys.stdout.flush()
+         print("\n")
+         print("USED: {:} of {:} - {:.4}%".format(WriteCount, WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_SIZE], 100.0 * WriteCount / WriteMemoryMap[FindCount][PIC_DEVICES.PICDEV_MEM_SIZE] / StepCount))
          print("\n")
 
          PIC_API.ProgramModeEnd()
@@ -320,7 +325,7 @@ def CreateMemoryMap(MemoryMap):
          if MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE] & PIC_DEVICES.PICMEM_DATA:
             BlankMemoryMap.append([MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_TYPE],
                                   MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_ADDR],
-                                  MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE] * 2,
+                                  MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE], # * 2,
                                   MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_OBJ_ADDR],
                                   MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_STRE_MASK],
                                   [DeviceBlankDataWord for Value in range(MemoryMap[Count][PIC_DEVICES.PICDEV_MEM_SIZE] * 2)]])

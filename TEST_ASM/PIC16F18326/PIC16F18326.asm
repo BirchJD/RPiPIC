@@ -1,8 +1,8 @@
-                  LIST     P = P16F684          ; Current version of GPASM doesn't support P16F18346, so dupe gpasm.
+                  LIST     P = P16F684          ; Current version of GPASM doesn't support P16F18326, so dupe gpasm.
 
-                  INCLUDE  "../INCLUDE/P16F18346.INC"
+                  INCLUDE  "../INCLUDE/P16F18326.INC"
 
-                  ORG      0x10007               ; Current version of GPASM doesn't support P16F18346, so work around.
+                  ORG      0x10007               ; Current version of GPASM doesn't support P16F18326, so work around.
 
                   DW       _RSTOSC_HFINT1 & _FEXTOSC_OFF & _CLKOUTEN_OFF & _CSWEN_ON & _FCMEN_ON
                   DW       _WDTE_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _LPBOREN_OFF & _BORV_LOW & _PPS1WAY_ON & _STVREN_ON & _DEBUG_OFF
@@ -11,7 +11,7 @@
 
 
 ;/**********************************************************************************/
-;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F18346 */
+;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F18326 */
 ;/* V1.00 2018-01-22 (C) Jason Birch                                               */
 ;/**********************************************************************************/
 
@@ -96,7 +96,7 @@ INIT              CLRF     CCP3CON              ; Switch off comparitors.
                   MOVWF    BSR
 
                   CLRF     ANSELA               ; Switch off A/D pins, all pins digital.
-                  CLRF     ANSELB
+;                  CLRF     ANSELB
                   CLRF     ANSELC
 
                   MOVLW    0x01                 ; SELECT REGISTER BANK 1

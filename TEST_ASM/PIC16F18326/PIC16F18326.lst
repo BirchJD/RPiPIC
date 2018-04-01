@@ -1,25 +1,25 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 3-29-2018  02:54:07
+Listing File Generated: 3-29-2018  02:54:47
  
  
 Address  Value    Disassembly              Source
 -------  -----    -----------              ------
-                                                             LIST     P = P16F684          ; Current version of GPASM doesn't support P16F18346, so dupe gpasm.
+                                                             LIST     P = P16F684          ; Current version of GPASM doesn't support P16F18326, so dupe gpasm.
                                            
-                                                             INCLUDE  "../INCLUDE/P16F18346.INC"
+                                                             INCLUDE  "../INCLUDE/P16F18326.INC"
                                                    LIST
                                            
                                            ;==========================================================================
                                            ; Build date : Sep 19 2017
-                                           ;  MPASM PIC16F18346 processor include
+                                           ;  MPASM PIC16F18326 processor include
                                            ; 
                                            ;  (c) Copyright 1999-2017 Microchip Technology, All rights reserved
                                            ;==========================================================================
                                            
                                                    NOLIST
                                            
-                                                             ORG      0x10007               ; Current version of GPASM doesn't support P16F18346, so work around.
+                                                             ORG      0x10007               ; Current version of GPASM doesn't support P16F18326, so work around.
                                            
 010007   3fec     addlw	0xec                                 DW       _RSTOSC_HFINT1 & _FEXTOSC_OFF & _CLKOUTEN_OFF & _CSWEN_ON & _FCMEN_ON
 010008   3f3c     addlw	0x3c                                 DW       _WDTE_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _LPBOREN_OFF & _BORV_LOW & _PPS1WAY_ON & _STVREN_ON & _DEBUG_OFF
@@ -28,7 +28,7 @@ Address  Value    Disassembly              Source
                                            
                                            
                                            ;/**********************************************************************************/
-                                           ;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F18346 */
+                                           ;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F18326 */
                                            ;/* V1.00 2018-01-22 (C) Jason Birch                                               */
                                            ;/**********************************************************************************/
                                            
@@ -113,52 +113,52 @@ Address  Value    Disassembly              Source
 000022   0088     movwf	0x8                                  MOVWF    BSR
                                            
 000023   018c     clrf	0xc                                   CLRF     ANSELA               ; Switch off A/D pins, all pins digital.
-000024   018d     clrf	0xd                                   CLRF     ANSELB
-000025   018e     clrf	0xe                                   CLRF     ANSELC
+                                           ;                  CLRF     ANSELB
+000024   018e     clrf	0xe                                   CLRF     ANSELC
                                            
-000026   3001     movlw	0x1                                  MOVLW    0x01                 ; SELECT REGISTER BANK 1
-000027   0088     movwf	0x8                                  MOVWF    BSR
+000025   3001     movlw	0x1                                  MOVLW    0x01                 ; SELECT REGISTER BANK 1
+000026   0088     movwf	0x8                                  MOVWF    BSR
                                            
-000028   300f     movlw	0xf                                  MOVLW    0x0F                 ; Prescale watchdog timer.
-000029   0097     movwf	0x17                                 MOVWF    WDTCON
-00002a   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-00002b   008c     movwf	0xc                                  MOVWF    TRISA
-00002c   3010     movlw	0x10                                 MOVLW    (1 << IOCIE)         ; Intrupt on input change.
-00002d   0090     movwf	0x10                                 MOVWF    PIE0
-00002e   3001     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
-00002f   0091     movwf	0x11                                 MOVWF    PIE1
+000027   300f     movlw	0xf                                  MOVLW    0x0F                 ; Prescale watchdog timer.
+000028   0097     movwf	0x17                                 MOVWF    WDTCON
+000029   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+00002a   008c     movwf	0xc                                  MOVWF    TRISA
+00002b   3010     movlw	0x10                                 MOVLW    (1 << IOCIE)         ; Intrupt on input change.
+00002c   0090     movwf	0x10                                 MOVWF    PIE0
+00002d   3001     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
+00002e   0091     movwf	0x11                                 MOVWF    PIE1
                                            
-000030   3004     movlw	0x4                                  MOVLW    0x04                 ; SELECT REGISTER BANK 4
-000031   0088     movwf	0x8                                  MOVWF    BSR
+00002f   3004     movlw	0x4                                  MOVLW    0x04                 ; SELECT REGISTER BANK 4
+000030   0088     movwf	0x8                                  MOVWF    BSR
                                            
-000032   3010     movlw	0x10                                 MOVLW    GPIO_SWITCH
-000033   008c     movwf	0xc                                  MOVWF    WPUA                 ; Weak pull up on switch.
+000031   3010     movlw	0x10                                 MOVLW    GPIO_SWITCH
+000032   008c     movwf	0xc                                  MOVWF    WPUA                 ; Weak pull up on switch.
                                            
-000034   3007     movlw	0x7                                  MOVLW    0x07                 ; SELECT REGISTER BANK 7
-000035   0088     movwf	0x8                                  MOVWF    BSR
+000033   3007     movlw	0x7                                  MOVLW    0x07                 ; SELECT REGISTER BANK 7
+000034   0088     movwf	0x8                                  MOVWF    BSR
                                            
-000036   3010     movlw	0x10                                 MOVLW    GPIO_SWITCH
-000037   0091     movwf	0x11                                 MOVWF    IOCAP                ; Interupt on change of switch state.
-000038   0092     movwf	0x12                                 MOVWF    IOCAN
-000039   0193     clrf	0x13                                  CLRF     IOCAF
+000035   3010     movlw	0x10                                 MOVLW    GPIO_SWITCH
+000036   0091     movwf	0x11                                 MOVWF    IOCAP                ; Interupt on change of switch state.
+000037   0092     movwf	0x12                                 MOVWF    IOCAN
+000038   0193     clrf	0x13                                  CLRF     IOCAF
                                            
-00003a   0188     clrf	0x8                                   CLRF     BSR                  ; SELECT REGISTER BANK 0
+000039   0188     clrf	0x8                                   CLRF     BSR                  ; SELECT REGISTER BANK 0
                                            
-00003b   018c     clrf	0xc                                   CLRF     PORTA                ; Clear GPIO port state.
-00003c   3015     movlw	0x15                                 MOVLW    (1 << TMR1ON)|(1 << T1SYNC)|(1 << T1CKPS0) ;|(1 << T1CKPS1)
-00003d   009b     movwf	0x1b                                 MOVWF    T1CON                ; Configure Timer1.
-00003e   30c0     movlw	0xc0                                 MOVLW    (1 << GIE)|(1 << PEIE)
-00003f   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
-000040   0191     clrf	0x11                                  CLRF     PIR1                 ; Clear interupt triggered flags.
+00003a   018c     clrf	0xc                                   CLRF     PORTA                ; Clear GPIO port state.
+00003b   3015     movlw	0x15                                 MOVLW    (1 << TMR1ON)|(1 << T1SYNC)|(1 << T1CKPS0) ;|(1 << T1CKPS1)
+00003c   009b     movwf	0x1b                                 MOVWF    T1CON                ; Configure Timer1.
+00003d   30c0     movlw	0xc0                                 MOVLW    (1 << GIE)|(1 << PEIE)
+00003e   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
+00003f   0191     clrf	0x11                                  CLRF     PIR1                 ; Clear interupt triggered flags.
                                            
-000041   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+000040   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
                                            
-000042   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
-000043   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
-000044   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-000045   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
-000046   2843     goto	0x43                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
-000047   2842     goto	0x42                                  GOTO     LOOP                 ; Infinite main loop.
+000041   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+000042   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+000043   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
+000044   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+000045   2842     goto	0x42                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
+000046   2841     goto	0x41                                  GOTO     LOOP                 ; Infinite main loop.
                                            
                                            
                                            
