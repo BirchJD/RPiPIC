@@ -21,6 +21,11 @@
 #/* ------------------------------------------------------------------------ */
 #/* V1.00 - 2016-12-22 - Jason Birch                                         */
 #/* V1.01 - 2017-12-30 - Added support for PIC18F device programming.        */
+#/* V1.02 - 2019-05-10 - Calibrate clock pulse, device specific clock period.*/
+#/*                      Device ID lookup and verify.                        */
+#/*                      Read specified data range. Only read and verify upto*/
+#/*                      highest programmed or specified address.            */
+#/*                      Added devices: 12F508,12F1822,16F505,16F688,16F716  */
 #/* ------------------------------------------------------------------------ */
 #/* Python PIC Microcontroller Low Level Functions.                          */
 #/****************************************************************************/
@@ -47,20 +52,15 @@ GPIO_DATA_OUT_PIN = 10
 #/******************************/
 EEWRITE_TIMEOUT = 1024
 
-SLEEP_CLOCK_WRITE = 1 / 10000000.0
-SLEEP_CLOCK_READ = 1 / 1000000.0
-SLEEP_DATA = 1 / 1000000.0
+SLEEP_CLOCK_WRITE = 1
+SLEEP_CLOCK_READ = 1
+SLEEP_CLOCK_WRITE_18F = 1
+SLEEP_CLOCK_READ_18F = 1
 
-PIC_DELAY_POWER_PROGRAM = 1 / 100000.0
-PIC_DELAY_FLASH_PROGRAM = 15 / 100000.0
-PIC_DELAY_EEPROM_ERASE = 1 / 100.0
-PIC_DELAY_EEPROM_PROGRAM = 1 / 100.0
-
-
-SLEEP_CLOCK_WRITE_18F = 1 / 10000000.0
-SLEEP_CLOCK_READ_18F = 1 / 1000000.0
-
-PIC_DELAY_EEPROM_PROGRAM_18F = 1 / 10000.0
+PIC_DELAY_POWER_PROGRAM = 200
+PIC_DELAY_EEPROM_ERASE = 10000
+PIC_DELAY_EEPROM_PROGRAM = 10000
+PIC_DELAY_EEPROM_PROGRAM_18F = 10000
 
 
 #/************************************/
@@ -72,7 +72,6 @@ PIC_BLANK_PROG_WORD = 0x3FFF
 PIC_BLANK_PROG_WORD_18F = 0x00FF
 PIC_BLANK_DATA_WORD = 0x00FF
 PIC_BLANK_DATA_WORD_18F = 0x00FF
-PIC_PROG_PULSE_COUNT = 1
 
 
 #/*************************************/
@@ -108,7 +107,7 @@ PIC_CMD_INC_ADDRESS      = 0x06
 PIC_CMD_ERASE_SETUP2     = 0x07
 PIC_CMD_BEGIN_ERASE_PROG = 0x08
 PIC_CMD_ERASE_PROG_MEM   = 0x09
-PIC_CMD_END_PROGRAMMING  = 0x0A
+PIC_CMD_END_ERASE_PROG   = 0x0A
 PIC_CMD_ERASE_DATA_MEM   = 0x0B
 PIC_CMD_END_PROGRAM      = 0x0E
 PIC_CMD_ROW_ERASE_PROG   = 0x11
@@ -137,23 +136,51 @@ PIC18_CMD_WRITE_PROG       = 0x0F
 
 
 
+ClockCalibration = 0
+
+
+
+#/******************************************/
+#/* Calibrate time delay for clock pulses. */
+#/******************************************/
+def CalibrateClockDelay():
+   global ClockCalibration
+
+   StartTime = time.time()
+   for Count in range(1000000):
+      Test = 0
+   EndTime = time.time()
+   ClockCalibration = 1 / (EndTime - StartTime)
+
+
+
+#/******************************/
+#/* Perform clock pulse delay. */
+#/******************************/
+def ClockDelay(ClockPeriod):
+   global ClockCalibration
+
+   for Count in range(int(ClockCalibration * ClockPeriod)):
+      Test = 0
+
+
+
 #/*************************************/
 #/* PIC12F/PIC16F LOW LEVEL FUNCTIONS */
 #/*************************************/
 def DataRead(BitCount):
    RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_1)
-   time.sleep(SLEEP_DATA)
 
    PicDataWord = 0
    for Count in range(BitCount):
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
-      time.sleep(SLEEP_CLOCK_READ)
+      ClockDelay(SLEEP_CLOCK_READ)
+
+      RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
+      ClockDelay(SLEEP_CLOCK_READ)
 
       if RPi.GPIO.input(GPIO_DATA_IN_PIN) == PIC_IN_DATA_1:
          PicDataWord = PicDataWord | int(math.pow(2, Count))
-
-      RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
-      time.sleep(SLEEP_CLOCK_READ)
 
    PicDataWord = (PicDataWord & 0x7FFE) / 2
 
@@ -165,24 +192,21 @@ def DataWrite(PicDataWord, BitCount):
    if BitCount == PIC_DATA_BIT_COUNT or BitCount == PIC_ADDRESS_BIT_COUNT:
       PicDataWord = PicDataWord * 2
 
-   time.sleep(SLEEP_DATA)
-
    for Count in range(BitCount):
-      RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
-
       Bit = (PicDataWord % 2)
       if Bit == 0:
          RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_0)
       else:
          RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_1)
 
-      time.sleep(SLEEP_CLOCK_WRITE)
+      RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
+      ClockDelay(SLEEP_CLOCK_WRITE)
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
-      time.sleep(SLEEP_CLOCK_WRITE)
+      ClockDelay(SLEEP_CLOCK_WRITE)
 
       PicDataWord = PicDataWord / 2
 
-   RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_0)
+#   RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_0)
 
 
 
@@ -245,6 +269,10 @@ def CmdBeginEraseProgram():
    DataWrite(PIC_CMD_BEGIN_ERASE_PROG, PIC_CMD_BIT_COUNT)
 
 
+def CmdEndEraseProgram():
+   DataWrite(PIC_CMD_END_ERASE_PROG, PIC_CMD_BIT_COUNT)
+
+
 def CmdBeginProgramOnly():
    DataWrite(PIC_CMD_BEGIN_PROG_ONLY, PIC_CMD_BIT_COUNT)
 
@@ -281,20 +309,20 @@ def DataRead_18F(BitCount):
 
    for Count in range(BitCount / 2):
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
-      time.sleep(SLEEP_CLOCK_READ_18F)
+      ClockDelay(SLEEP_CLOCK_READ_18F)
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
-      time.sleep(SLEEP_CLOCK_READ_18F)
+      ClockDelay(SLEEP_CLOCK_READ_18F)
 
    PicDataWord = 0
    for Count in range(BitCount / 2):
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
-      time.sleep(SLEEP_CLOCK_READ_18F)
+      ClockDelay(SLEEP_CLOCK_READ_18F)
+
+      RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
+      ClockDelay(SLEEP_CLOCK_READ_18F)
 
       if RPi.GPIO.input(GPIO_DATA_IN_PIN) == PIC_IN_DATA_1:
          PicDataWord = PicDataWord | int(math.pow(2, Count))
-
-      RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
-      time.sleep(SLEEP_CLOCK_READ_18F)
 
    return PicDataWord
 
@@ -302,7 +330,7 @@ def DataRead_18F(BitCount):
 
 def DataWrite_18F(PicDataWord, BitCount, ProgramFlag = False):
    for Count in range(BitCount):
-      time.sleep(SLEEP_CLOCK_WRITE_18F)
+      ClockDelay(SLEEP_CLOCK_WRITE_18F)
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_ON)
 
       Bit = (PicDataWord % 2)
@@ -312,17 +340,17 @@ def DataWrite_18F(PicDataWord, BitCount, ProgramFlag = False):
          RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_1)
 
       if ProgramFlag == True and Count == 3:
-         time.sleep(PIC_DELAY_EEPROM_PROGRAM_18F)
+         ClockDelay(PIC_DELAY_EEPROM_PROGRAM_18F)
 
-      time.sleep(SLEEP_CLOCK_WRITE_18F)
+      ClockDelay(SLEEP_CLOCK_WRITE_18F)
       RPi.GPIO.output(GPIO_CLK_PIN, PIC_CLK_OFF)
 
       if ProgramFlag == True and Count == 3:
-         time.sleep(PIC_DELAY_EEPROM_PROGRAM_18F)
+         ClockDelay(PIC_DELAY_EEPROM_PROGRAM_18F)
 
       PicDataWord = PicDataWord / 2
 
-   RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_0)
+#   RPi.GPIO.output(GPIO_DATA_OUT_PIN, PIC_OUT_DATA_0)
 
 
 

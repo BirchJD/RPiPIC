@@ -1,6 +1,6 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 5-12-2017  15:15:19
+Listing File Generated: 5-24-2019  01:51:27
  
  
 Address  Value    Disassembly              Source
@@ -21,11 +21,16 @@ Address  Value    Disassembly              Source
                                                              __CONFIG _INTRC_OSC_NOCLKOUT & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
                                            
                                            
+                                           ;/********************************************************************************/
+                                           ;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F630 */
+                                           ;/* V1.00 2017-12-31 (C) Jason Birch                                             */
+                                           ;/********************************************************************************/
+                                           
                                            
                                            ;/*************/
                                            ;/* Constants */
                                            ;/*************/
-                                           GPIO_LED          EQU      (1 << RA5)           ; GPIO pin allocated for driving an LED.
+                                           GPIO_LED          EQU      (1 << RC5)           ; GPIO pin allocated for driving an LED.
                                            GPIO_SWITCH       EQU      (1 << RA4)           ; GPIO pin allocated for sensing a switch press.
                                            
                                            DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
@@ -66,7 +71,7 @@ Address  Value    Disassembly              Source
 000007   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
 000008   1903     btfsc	0x3, 0x2                             BTFSC    STATUS, Z
 000009   280c     goto	0xc                                   GOTO     INT_TIMER1_END
-00000a   0985     comf	0x5, f                                COMF     PORTA                ; Invert LED.
+00000a   0987     comf	0x7, f                                COMF     PORTC                ; Invert LED.
 00000b   03a0     decf	0x20, f                               DECF     FLASH_COUNT          ; Reduce flash count.
 00000c   100c     bcf	0xc, 0               INT_TIMER1_END    BCF      PIR1, TMR1IF
                                            
@@ -91,7 +96,7 @@ Address  Value    Disassembly              Source
 000018   300f     movlw	0xf                INIT              MOVLW    0x0F                 ; Prescale watchdog timer.
 000019   0081     movwf	0x1                                  MOVWF    OPTION_REG
 00001a   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-00001b   0085     movwf	0x5                                  MOVWF    TRISA
+00001b   0087     movwf	0x7                                  MOVWF    TRISC
 00001c   3010     movlw	0x10                                 MOVLW    GPIO_SWITCH
 00001d   0095     movwf	0x15                                 MOVWF    WPU                  ; Weak pull up on switch.
 00001e   0096     movwf	0x16                                 MOVWF    IOC                  ; Interupt on change of switch state.
@@ -102,20 +107,21 @@ Address  Value    Disassembly              Source
 000022   3007     movlw	0x7                                  MOVLW    0x07                 ; Switch comparitor off.
 000023   0099     movwf	0x19                                 MOVWF    CMCON
 000024   0185     clrf	0x5                                   CLRF     PORTA                ; Clear GPIO port state.
-000025   3035     movlw	0x35                                 MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
-000026   0090     movwf	0x10                                 MOVWF    T1CON                ; Configure Timer1.
-000027   30c8     movlw	0xc8                                 MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RAIE)
-000028   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
-000029   018c     clrf	0xc                                   CLRF     PIR1                 ; Clear interupt triggered flags.
+000025   0187     clrf	0x7                                   CLRF     PORTC
+000026   3035     movlw	0x35                                 MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
+000027   0090     movwf	0x10                                 MOVWF    T1CON                ; Configure Timer1.
+000028   30c8     movlw	0xc8                                 MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RAIE)
+000029   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
+00002a   018c     clrf	0xc                                   CLRF     PIR1                 ; Clear interupt triggered flags.
                                            
-00002a   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+00002b   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
                                            
-00002b   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
-00002c   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
-00002d   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-00002e   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
-00002f   282c     goto	0x2c                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
-000030   282b     goto	0x2b                                  GOTO     LOOP                 ; Infinite main loop.
+00002c   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+00002d   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+00002e   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
+00002f   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+000030   282d     goto	0x2d                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
+000031   282c     goto	0x2c                                  GOTO     LOOP                 ; Infinite main loop.
                                            
                                            
                                            

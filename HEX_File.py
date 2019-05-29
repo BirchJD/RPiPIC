@@ -21,6 +21,11 @@
 #/* ------------------------------------------------------------------------ */
 #/* V1.00 - 2016-12-22 - Jason Birch                                         */
 #/* V1.01 - 2017-12-30 - Added support for PIC18F device programming.        */
+#/* V1.02 - 2019-05-10 - Calibrate clock pulse, device specific clock period.*/
+#/*                      Device ID lookup and verify.                        */
+#/*                      Read specified data range. Only read and verify upto*/
+#/*                      highest programmed or specified address.            */
+#/*                      Added devices: 12F508,12F1822,16F505,16F688,16F716  */
 #/* ------------------------------------------------------------------------ */
 #/* Python Intel HEX File Reader.                                            */
 #/****************************************************************************/
@@ -96,7 +101,7 @@ def ReadHexFile(FileName):
 # /* Data type. */
 #/**************/
                sys.stdout.write("ADDRESS: {:8X} ".format(BaseAddress + Address))
-               sys.stdout.write("{:^25s}".format("DATA [" + "{:4d}".format(ByteCount) + "]"))
+               sys.stdout.write("{:^25s}".format("DATA [" + "{:4X}".format(ByteCount) + "]"))
                HexFileData.append([BaseAddress + Address, []])
                for DataCount in range(0, ByteCount * 2, 2):
                   HexFileData[len(HexFileData) - 1][DATA].append(Data[DataCount:DataCount + 2])

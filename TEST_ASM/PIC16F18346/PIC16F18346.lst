@@ -1,6 +1,6 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 3-29-2018  02:54:07
+Listing File Generated: 5-24-2019  01:59:04
  
  
 Address  Value    Disassembly              Source
@@ -36,7 +36,7 @@ Address  Value    Disassembly              Source
                                            ;/*************/
                                            ;/* Constants */
                                            ;/*************/
-                                           GPIO_LED          EQU      (1 << RA5)           ; GPIO pin allocated for driving an LED.
+                                           GPIO_LED          EQU      (1 << RC5)           ; GPIO pin allocated for driving an LED.
                                            GPIO_SWITCH       EQU      (1 << RA4)           ; GPIO pin allocated for sensing a switch press.
                                            
                                            DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
@@ -77,7 +77,7 @@ Address  Value    Disassembly              Source
 000007   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
 000008   1903     btfsc	0x3, 0x2                             BTFSC    STATUS, Z
 000009   280c     goto	0xc                                   GOTO     INT_TIMER1_END
-00000a   098c     comf	0xc, f                                COMF     PORTA                ; Invert LED.
+00000a   098e     comf	0xe, f                                COMF     PORTC                ; Invert LED.
 00000b   03a0     decf	0x20, f                               DECF     FLASH_COUNT          ; Reduce flash count.
 00000c   1011     bcf	0x11, 0              INT_TIMER1_END    BCF      PIR1, TMR1IF
                                            
@@ -122,7 +122,7 @@ Address  Value    Disassembly              Source
 000028   300f     movlw	0xf                                  MOVLW    0x0F                 ; Prescale watchdog timer.
 000029   0097     movwf	0x17                                 MOVWF    WDTCON
 00002a   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-00002b   008c     movwf	0xc                                  MOVWF    TRISA
+00002b   008e     movwf	0xe                                  MOVWF    TRISC
 00002c   3010     movlw	0x10                                 MOVLW    (1 << IOCIE)         ; Intrupt on input change.
 00002d   0090     movwf	0x10                                 MOVWF    PIE0
 00002e   3001     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
@@ -145,20 +145,21 @@ Address  Value    Disassembly              Source
 00003a   0188     clrf	0x8                                   CLRF     BSR                  ; SELECT REGISTER BANK 0
                                            
 00003b   018c     clrf	0xc                                   CLRF     PORTA                ; Clear GPIO port state.
-00003c   3015     movlw	0x15                                 MOVLW    (1 << TMR1ON)|(1 << T1SYNC)|(1 << T1CKPS0) ;|(1 << T1CKPS1)
-00003d   009b     movwf	0x1b                                 MOVWF    T1CON                ; Configure Timer1.
-00003e   30c0     movlw	0xc0                                 MOVLW    (1 << GIE)|(1 << PEIE)
-00003f   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
-000040   0191     clrf	0x11                                  CLRF     PIR1                 ; Clear interupt triggered flags.
+00003c   018e     clrf	0xe                                   CLRF     PORTC
+00003d   3015     movlw	0x15                                 MOVLW    (1 << TMR1ON)|(1 << T1SYNC)|(1 << T1CKPS0) ;|(1 << T1CKPS1)
+00003e   009b     movwf	0x1b                                 MOVWF    T1CON                ; Configure Timer1.
+00003f   30c0     movlw	0xc0                                 MOVLW    (1 << GIE)|(1 << PEIE)
+000040   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
+000041   0191     clrf	0x11                                  CLRF     PIR1                 ; Clear interupt triggered flags.
                                            
-000041   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+000042   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
                                            
-000042   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
-000043   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
-000044   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-000045   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
-000046   2843     goto	0x43                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
-000047   2842     goto	0x42                                  GOTO     LOOP                 ; Infinite main loop.
+000043   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+000044   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+000045   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
+000046   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+000047   2844     goto	0x44                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
+000048   2843     goto	0x43                                  GOTO     LOOP                 ; Infinite main loop.
                                            
                                            
                                            

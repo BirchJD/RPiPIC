@@ -14,7 +14,7 @@
 ;/*************/
 ;/* Constants */
 ;/*************/
-GPIO_LED          EQU      (1 << RA5)           ; GPIO pin allocated for driving an LED.
+GPIO_LED          EQU      (1 << RC5)           ; GPIO pin allocated for driving an LED.
 GPIO_SWITCH       EQU      (1 << RA4)           ; GPIO pin allocated for sensing a switch press.
 
 DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
@@ -56,7 +56,7 @@ INT_HANDLE        BCF      STATUS, RP0          ; Select Register bank 0
                   MOVF     FLASH_COUNT, F       ; Is a flashing process active?
                   BTFSC    STATUS, Z
                   GOTO     INT_TIMER1_END
-                  COMF     PORTA                ; Invert LED.
+                  COMF     PORTC                ; Invert LED.
                   DECF     FLASH_COUNT          ; Reduce flash count.
 INT_TIMER1_END    BCF      PIR1, TMR1IF
 
@@ -84,7 +84,7 @@ INIT              CLRF     ANSEL                ; Switch off A/D pins, all pins 
                   MOVLW    0x0F                 ; Prescale watchdog timer.
                   MOVWF    OPTION_REG
                   MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-                  MOVWF    TRISA
+                  MOVWF    TRISC
                   MOVLW    GPIO_SWITCH
                   MOVWF    WPUA                 ; Weak pull up on switch.
                   MOVWF    IOCA                 ; Interupt on change of switch state.
@@ -95,6 +95,7 @@ INIT              CLRF     ANSEL                ; Switch off A/D pins, all pins 
 ;                  MOVLW    0x07                 ; Switch comparitor off.
 ;                  MOVWF    CMCON
                   CLRF     PORTA                ; Clear GPIO port state.
+                  CLRF     PORTC
                   MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
                   MOVWF    T1CON                ; Configure Timer1.
                   MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RABIE)

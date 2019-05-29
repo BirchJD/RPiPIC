@@ -1,6 +1,6 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 5-12-2017  14:57:25
+Listing File Generated: 5-24-2019  00:56:55
  
  
 Address  Value    Disassembly              Source
@@ -21,11 +21,16 @@ Address  Value    Disassembly              Source
                                                              __CONFIG _INTRC_OSC_NOCLKOUT & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
                                            
                                            
+                                           ;/********************************************************************************/
+                                           ;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC12F629 */
+                                           ;/* V1.00 2017-12-31 (C) Jason Birch                                             */
+                                           ;/********************************************************************************/
+                                           
                                            
                                            ;/*************/
                                            ;/* Constants */
                                            ;/*************/
-                                           GPIO_LED          EQU      (1 << GP5)           ; GPIO pin allocated for driving an LED.
+                                           GPIO_LED          EQU      (1 << GP2)           ; GPIO pin allocated for driving an LED.
                                            GPIO_SWITCH       EQU      (1 << GP4)           ; GPIO pin allocated for sensing a switch press.
                                            
                                            DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
@@ -90,7 +95,7 @@ Address  Value    Disassembly              Source
                                            ;/*******************************/
 000018   300f     movlw	0xf                INIT              MOVLW    0x0F                 ; Prescale watchdog timer.
 000019   0081     movwf	0x1                                  MOVWF    OPTION_REG
-00001a   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+00001a   30fb     movlw	0xfb                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
 00001b   0085     movwf	0x5                                  MOVWF    TRISIO
 00001c   3010     movlw	0x10                                 MOVLW    GPIO_SWITCH
 00001d   0095     movwf	0x15                                 MOVWF    WPU                  ; Weak pull up on switch.

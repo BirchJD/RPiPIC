@@ -1,6 +1,6 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 1-1-2018  00:06:51
+Listing File Generated: 5-24-2019  02:39:55
  
  
 Address  Value    Disassembly              Source
@@ -18,7 +18,7 @@ Address  Value    Disassembly              Source
                                            
                                                    NOLIST
                                            
-                                                             __CONFIG _RC_OSC & _WDT_ON & _PWRTE_ON & _LVP_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
+                                                             __CONFIG _RC_OSC & _WDT_ON & _PWRTE_ON & _LVP_OFF & _BOREN_OFF & _DEBUG_OFF & _CP_OFF & _CPD_OFF
                                            
                                            
                                            ;/*********************************************************************************/
@@ -53,10 +53,11 @@ Address  Value    Disassembly              Source
                                            ;/**********************************/
                                                              ORG      0x0000
                                            
-000000   1483     bsf	0x3, 0x1                               BSF      STATUS, RB1          ; Select Register bank 3
-000001   1403     bsf	0x3, 0                                 BSF      STATUS, RB0
-                                                             ; CLRF     ANSEL                ; Switch off A/D pins, all pins digital.
-000002   281b     goto	0x1b                                  GOTO     INIT
+000000   1283     bcf	0x3, 0x5                               BCF      STATUS, RP0          ; Select Register bank 0
+000001   1303     bcf	0x3, 0x6                               BCF      STATUS, RP1
+                                           
+000002   0186     clrf	0x6                                   CLRF     PORTB                ; Clear GPIO port state.
+000003   281b     goto	0x1b                                  GOTO     INIT
                                            
                                            
                                            
@@ -97,39 +98,38 @@ Address  Value    Disassembly              Source
                                            ;/*******************************/
                                            ;/* Initialise microcontroller. */
                                            ;/*******************************/
-00001b   1303     bcf	0x3, 0x6             INIT              BCF      STATUS, RP1          ; Select Register bank 1
+00001b   1683     bsf	0x3, 0x5             INIT              BSF      STATUS, RP0          ; Select Register bank 1
                                            
-00001c   300f     movlw	0xf                                  MOVLW    0x0F                 ; Prescale watchdog timer.
-00001d   0081     movwf	0x1                                  MOVWF    OPTION_REG
-00001e   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
-00001f   0086     movwf	0x6                                  MOVWF    TRISB
-000020   3010     movlw	0x10                                 MOVLW    GPIO_SWITCH
-                                           ;                  MOVWF    WPUB                 ; Weak pull up on switch.
-                                           ;                  MOVWF    IOCB                 ; Interupt on change of switch state.
-000021   3001     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
-000022   008c     movwf	0xc                                  MOVWF    PIE1
+00001c   3006     movlw	0x6                                  MOVLW    (1 << PCFG1)|(1 << PCFG2) ; All inputs digital.
+00001d   009f     movwf	0x1f                                 MOVWF    ADCON1
                                            
-000023   1283     bcf	0x3, 0x5                               BCF      STATUS, RP0          ; Select Register bank 0
+00001e   3087     movlw	0x87                                 MOVLW    (1 << NOT_RBPU)|(1 << PS0)|(1 << PS1)|(1 << PS2) ; Prescale timer.
+00001f   0081     movwf	0x1                                  MOVWF    OPTION_REG
+000020   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+000021   0086     movwf	0x6                                  MOVWF    TRISB
+000022   3001     movlw	0x1                                  MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
+000023   008c     movwf	0xc                                  MOVWF    PIE1
                                            
-                                           ;                  MOVLW    0x07                 ; Switch comparitor off.
-                                           ;                  MOVWF    CMCON
-000024   018e     clrf	0xe                                   CLRF     TMR1L                ; Configure full TIMER1 period.
-000025   018f     clrf	0xf                                   CLRF     TMR1H
-000026   0186     clrf	0x6                                   CLRF     PORTB                ; Clear GPIO port state.
-000027   3035     movlw	0x35                                 MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
-000028   0090     movwf	0x10                                 MOVWF    T1CON                ; Configure Timer1.
-000029   30d8     movlw	0xd8                                 MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)|(1 << INTE)
-00002a   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
-00002b   018c     clrf	0xc                                   CLRF     PIR1                 ; Clear interupt triggered flags.
+000024   1283     bcf	0x3, 0x5                               BCF      STATUS, RP0          ; Select Register bank 0
                                            
-00002c   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+000025   019f     clrf	0x1f                                  CLRF     ADCON1               ; Switch off A/D converter.
+000026   019c     clrf	0x1c                                  CLRF     CMCON                ; Switch comparitor off.
+000027   018e     clrf	0xe                                   CLRF     TMR1L                ; Configure full TIMER1 period.
+000028   018f     clrf	0xf                                   CLRF     TMR1H
+000029   3035     movlw	0x35                                 MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
+00002a   0090     movwf	0x10                                 MOVWF    T1CON                ; Configure Timer1.
+00002b   30d8     movlw	0xd8                                 MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)|(1 << INTE)
+00002c   008b     movwf	0xb                                  MOVWF    INTCON               ; Enable interupts.
+00002d   018c     clrf	0xc                                   CLRF     PIR1                 ; Clear interupt triggered flags.
                                            
-00002d   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
-00002e   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
-00002f   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
-000030   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
-000031   282e     goto	0x2e                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
-000032   282d     goto	0x2d                                  GOTO     LOOP                 ; Infinite main loop.
+00002e   01a0     clrf	0x20                                  CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+                                           
+00002f   0063     sleep                    LOOP              SLEEP                         ; Low power mode when inactive.
+000030   0064     clrwdt                   ACTIVE_LOOP       CLRWDT                        ; Tell the CPU the program is still running.
+000031   08a0     movf	0x20, f                               MOVF     FLASH_COUNT, F       ; Is a flashing process active?
+000032   1d03     btfss	0x3, 0x2                             BTFSS    STATUS, Z
+000033   2830     goto	0x30                                  GOTO     ACTIVE_LOOP          ; Keep processor awake to receive timer interupts.
+000034   282f     goto	0x2f                                  GOTO     LOOP                 ; Infinite main loop.
                                            
                                            
                                            

@@ -2,7 +2,7 @@
 
                   INCLUDE  "../INCLUDE/P16F887.INC"
 
-                  __CONFIG _INTRC_OSC_NOCLKOUT & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
+                  __CONFIG _INTRC_OSC_NOCLKOUT & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _IESO_OFF & _FCMEN_OFF & _BOREN_OFF & _DEBUG_OFF & _CP_OFF & _CPD_OFF
 
 
 ;/********************************************************************************/
@@ -37,9 +37,9 @@ ENDC
 ;/**********************************/
                   ORG      0x0000
 
-                  BSF      STATUS, RP0          ; Select Register bank 3
+                  BCF      STATUS, RP0          ; Select Register bank 2
                   BSF      STATUS, RP1
-                  CLRF     ANSEL                ; Switch off A/D pins, all pins digital.
+                  CLRF     PORTB                ; Clear GPIO port state.
                   GOTO     INIT
 
 
@@ -81,11 +81,19 @@ INT_END           RETFIE
 ;/*******************************/
 ;/* Initialise microcontroller. */
 ;/*******************************/
-INIT              CLRF     ANSELH               ; Switch off A/D pins, all pins digital.
+INIT              CLRF     CM1CON0              ; Switch comparitor off.
+                  CLRF     CM2CON0
+                  CLRF     CM2CON1
 
-                  BCF      STATUS, RP1          ; Select Register bank 1
+                  BSF      STATUS, RP0          ; Select Register bank 3
 
-                  MOVLW    0x0F                 ; Prescale watchdog timer.
+                  CLRF     ANSEL                ; Switch off A/D pins, all pins digital.
+                  CLRF     ANSELH
+
+                  BSF      STATUS, RP0          ; Select Register bank 1
+                  BCF      STATUS, RP1
+
+                  MOVLW    (1 << NOT_RBPU)|(1 << PS0)|(1 << PS1)|(1 << PS2) ; Prescale timer.
                   MOVWF    OPTION_REG
                   MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
                   MOVWF    TRISB
@@ -97,9 +105,7 @@ INIT              CLRF     ANSELH               ; Switch off A/D pins, all pins 
 
                   BCF      STATUS, RP0          ; Select Register bank 0
 
-;                  MOVLW    0x07                 ; Switch comparitor off.
-;                  MOVWF    CMCON
-                  CLRF     PORTB                ; Clear GPIO port state.
+                  CLRF     ADCON0               ; Turn off the A/D.
                   CLRF     TMR1L                ; Configure full TIMER1 period.
                   CLRF     TMR1H
                   MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)

@@ -14,7 +14,7 @@
 ;/*************/
 ;/* Constants */
 ;/*************/
-GPIO_LED          EQU      (1 << GP5)           ; GPIO pin allocated for driving an LED.
+GPIO_LED          EQU      (1 << GP2)           ; GPIO pin allocated for driving an LED.
 GPIO_SWITCH       EQU      (1 << GP4)           ; GPIO pin allocated for sensing a switch press.
 
 DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.

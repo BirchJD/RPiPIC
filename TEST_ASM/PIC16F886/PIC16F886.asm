@@ -2,7 +2,7 @@
 
                   INCLUDE  "../INCLUDE/P16F886.INC"
 
-                  __CONFIG _INTOSCIO & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
+                  __CONFIG _INTOSCIO & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _DEBUG_OFF & _CP_OFF & _CPD_OFF
 
 
 ;/********************************************************************************/
@@ -85,7 +85,7 @@ INIT              CLRF     ANSELH               ; Switch off A/D pins, all pins 
 
                   BCF      STATUS, RP1          ; Select Register bank 1
 
-                  MOVLW    0x0F                 ; Prescale watchdog timer.
+                  MOVLW    (1 << NOT_RBPU)|(1 << PS0)|(1 << PS1)|(1 << PS2) ; Prescale timer.
                   MOVWF    OPTION_REG
                   MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
                   MOVWF    TRISB

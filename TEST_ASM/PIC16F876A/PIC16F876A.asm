@@ -2,7 +2,7 @@
 
                   INCLUDE  "../INCLUDE/P16F876A.INC"
 
-                  __CONFIG _RC_OSC & _WDT_ON & _PWRTE_ON & _LVP_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
+                  __CONFIG _RC_OSC & _WDT_ON & _PWRTE_ON & _LVP_OFF & _BOREN_OFF & _DEBUG_OFF & _CP_OFF & _CPD_OFF
 
 
 ;/*********************************************************************************/
@@ -37,9 +37,9 @@ ENDC
 ;/**********************************/
                   ORG      0x0000
 
-                  BSF      STATUS, RB1          ; Select Register bank 2
-                  BSF      STATUS, RB0
-;                  CLRF     ANSEL                ; Switch off A/D pins, all pins digital.
+                  BCF      STATUS, RP1          ; Select Register bank 0
+                  BCF      STATUS, RB0
+                  CLRF     PORTB                ; Clear GPIO port state.
                   GOTO     INIT
 
 
@@ -81,28 +81,26 @@ INT_END           RETFIE
 ;/*******************************/
 ;/* Initialise microcontroller. */
 ;/*******************************/
-INIT              BCF      STATUS, RP1          ; Select Register bank 1
+INIT              BSF      STATUS, RP0          ; Select Register bank 1
 
-                  MOVLW    0x0F                 ; Prescale watchdog timer.
+                  CLRF     CMCON                ; Turn off comparitor.
+                  MOVLW    (1 << PCFG1)|(1 << PCFG2)
+                  MOVWF    ADCON1               ; Configure digital inputs only.
+                  MOVLW    (1 << NOT_RBPU)|(1 << PS0)|(1 << PS1)|(1 << PS2) ; Prescale timer.
                   MOVWF    OPTION_REG
                   MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
                   MOVWF    TRISB
-                  MOVLW    GPIO_SWITCH
-;                  MOVWF    WPUB                 ; Weak pull up on switch.
-;                  MOVWF    IOCB                 ; Interupt on change of switch state.
                   MOVLW    (1 << TMR1IE)        ; Intrupt on Timer1 overflow.
                   MOVWF    PIE1
 
                   BCF      STATUS, RP0          ; Select Register bank 0
 
-;                  MOVLW    0x07                 ; Switch comparitor off.
-;                  MOVWF    CMCON
-                  CLRF     PORTB                ; Clear GPIO port state.
+                  CLRF     ADCON0               ; Switch off A/D converter.
                   CLRF     TMR1L                ; Configure full TIMER1 period.
                   CLRF     TMR1H
                   MOVLW    (1 << TMR1ON)|(1 << NOT_T1SYNC)|(1 << T1CKPS0)|(1 << T1CKPS1)
                   MOVWF    T1CON                ; Configure Timer1.
-                  MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)|(1 << INTE)
+                  MOVLW    (1 << GIE)|(1 << PEIE)|(1 << RBIE)
                   MOVWF    INTCON               ; Enable interupts.
                   CLRF     PIR1                 ; Clear interupt triggered flags.
 

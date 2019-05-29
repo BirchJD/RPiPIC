@@ -1,0 +1,133 @@
+gplink-0.13.7 beta
+Copyright (c) 1998-2005 gputils project
+Listing File Generated: 5-24-2019  01:19:43
+ 
+ 
+Address  Value    Disassembly              Source
+-------  -----    -----------              ------
+                                                             LIST     P = P16F505
+                                           
+                                                             INCLUDE  "../INCLUDE/P16F505.INC"
+                                                   LIST
+                                           
+                                           ;==========================================================================
+                                           ;  MPASM PIC16F505 processor include
+                                           ; 
+                                           ;  (c) Copyright 1999-2011 Microchip Technology, All rights reserved
+                                           ;==========================================================================
+                                           
+                                                   NOLIST
+                                           
+                                                             __CONFIG _OSC_IntRC_RB4EN & _WDT_ON & _MCLRE_OFF & _CP_OFF
+                                           
+                                           
+                                           ;/********************************************************************************/
+                                           ;/* Raspberry Pi PIC Programmer - Example LED Flash Program For Device PIC16F505 */
+                                           ;/* V1.00 2019-05-11 (C) Jason Birch                                             */
+                                           ;/********************************************************************************/
+                                           
+                                           
+                                           ;/*************/
+                                           ;/* Constants */
+                                           ;/*************/
+                                           GPIO_LED          EQU      (1 << RC5)           ; GPIO pin allocated for driving an LED.
+                                           GPIO_SWITCH       EQU      (1 << RB4)           ; GPIO pin allocated for sensing a switch press.
+                                           GPIO_SWITCH_BIT   EQU      RB4
+                                           
+                                           SCALE_COUNT_VALUE EQU      0x10                 ; TIMER0 Scaling value.
+                                           DO_FLASH_COUNT    EQU      0x06                 ; Number of times to invert LED on button press.
+                                           
+                                           
+                                           
+                                           ;/******************/
+                                           ;/* RAM Registers. */
+                                           ;/******************/
+                                           CBLOCK            0x08
+                                                             FLASH_COUNT                   ; Keep track of howmany LED inversions remain.
+                                                             SCALE_COUNT                   ; Scale timer.
+                                           ENDC
+                                           
+                                           
+                                           
+                                                             CODE
+                                           
+                                           ;/**********************************/
+                                           ;/* Reset program location vector. */
+                                           ;/**********************************/
+                                                             ORG      0x03FF
+                                           
+0003ff   0a00     goto	0                                     GOTO     0x0000
+                                           
+                                           
+                                           
+                                                             ORG      0x0000
+                                           
+                                           ;/*************************************/
+                                           ;/* Interupt program location vector. */
+                                           ;/*************************************/
+                                           ;                 NO INTERUPTS PRESENT IN THIS MICRO-CONTROLLER.
+                                           
+                                           ;/*******************************/
+                                           ;/* Initialise microcontroller. */
+                                           ;/*******************************/
+000000   0cc7     movlw	0xc7               INIT              MOVLW    (1 << PS0)|(1 << PS1)|(1 << PS2)|(1 << NOT_GPPU)|(1 << NOT_GPWU) ; Prescale timer.
+000001   0002     option                                     OPTION
+000002   0cdf     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
+000003   0007     tris	0x7                                   TRIS     PORTC
+000004   0066     clrf	0x6                                   CLRF     PORTB                ; Clear GPIO port state.
+000005   0067     clrf	0x7                                   CLRF     PORTC
+000006   0068     clrf	0x8                                   CLRF     FLASH_COUNT          ; Clear the flash count RAM register.
+000007   0069     clrf	0x9                                   CLRF     SCALE_COUNT          ; Clear the timer scaling count.
+                                           
+000008   0004     clrwdt                   LOOP              CLRWDT                        ; Tell the CPU the program is still running.
+                                           
+000009   0686     btfsc	0x6, 0x4                             BTFSC    PORTB, GPIO_SWITCH_BIT ; Wait for key press.
+00000a   0a08     goto	0x8                                   GOTO     LOOP
+                                           
+00000b   0061     clrf	0x1                                   CLRF     TMR0                 ; Configure full TIMER0 period.
+00000c   0c10     movlw	0x10                                 MOVLW    SCALE_COUNT_VALUE    ; Reset TIMER0 scaling value.
+00000d   0029     movwf	0x9                                  MOVWF    SCALE_COUNT
+00000e   0c06     movlw	0x6                                  MOVLW    DO_FLASH_COUNT       ; Set flash LED count.
+00000f   0028     movwf	0x8                                  MOVWF    FLASH_COUNT
+                                           
+000010   0004     clrwdt                   TIMER_WAIT        CLRWDT
+000011   07e1     btfss	0x1, 0x7                             BTFSS    TMR0, 7              ; Did a TIMER0 count below half?
+000012   0a10     goto	0x10                                  GOTO     TIMER_WAIT
+000013   0061     clrf	0x1                                   CLRF     TMR0
+000014   02e9     decfsz	0x9, f                              DECFSZ   SCALE_COUNT
+000015   0a10     goto	0x10                                  GOTO     TIMER_WAIT
+000016   0c10     movlw	0x10                                 MOVLW    SCALE_COUNT_VALUE    ; Reset TIMER0 scaling value.
+000017   0029     movwf	0x9                                  MOVWF    SCALE_COUNT
+                                           
+000018   0267     comf	0x7, f                                COMF     PORTC                ; Invert LED.
+000019   02e8     decfsz	0x8, f                              DECFSZ   FLASH_COUNT          ; Is a flashing process active?
+00001a   0a10     goto	0x10                                  GOTO     TIMER_WAIT
+00001b   0a08     goto	0x8                                   GOTO     LOOP                 ; Infinite main loop.
+                                           
+                                           
+                                           
+                                           ;/*********************************/
+                                           ;/* Write data to data area test. */
+                                           ;/*********************************/
+                                                             ORG      0x2000               ; Area for PIC USER ID - compiler will complain.
+                                           
+002000   0055     dw	0x55  ;unknown opcode                   DE       0x55, 0x55, 0x55, 0x55
+002001   0055     dw	0x55  ;unknown opcode 
+002002   0055     dw	0x55  ;unknown opcode 
+002003   0055     dw	0x55  ;unknown opcode 
+                                           
+                                           
+                                           
+                                           ;                  ORG      0x2005               ; Area for OSCAL - compiler will complain.
+                                           
+                                           ;                  DE       0xFF
+                                           
+                                           
+                                           
+                                           ;                  ORG      0x2100               ; EEPROM Area.
+                                           
+                                           ;                  NO EEPROM MEMORY PRESENT IN THIS MICRO-CONTROLLER.
+                                           
+                                           
+                                                             END
+                                           

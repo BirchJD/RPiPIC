@@ -1,6 +1,6 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 1-1-2018  10:20:02
+Listing File Generated: 5-24-2019  01:44:56
  
  
 Address  Value    Disassembly              Source
@@ -18,7 +18,7 @@ Address  Value    Disassembly              Source
                                            
                                                    NOLIST
                                            
-                                                             __CONFIG _INTOSCIO & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _CP_OFF & _CPD_OFF
+                                                             __CONFIG _INTOSCIO & _WDT_ON & _PWRTE_ON & _MCLRE_OFF & _BOREN_OFF & _DEBUG_OFF & _CP_OFF & _CPD_OFF
                                            
                                            
                                            ;/********************************************************************************/
@@ -101,7 +101,7 @@ Address  Value    Disassembly              Source
                                            
 00001c   1303     bcf	0x3, 0x6                               BCF      STATUS, RP1          ; Select Register bank 1
                                            
-00001d   300f     movlw	0xf                                  MOVLW    0x0F                 ; Prescale watchdog timer.
+00001d   3087     movlw	0x87                                 MOVLW    (1 << NOT_RBPU)|(1 << PS0)|(1 << PS1)|(1 << PS2) ; Prescale timer.
 00001e   0081     movwf	0x1                                  MOVWF    OPTION_REG
 00001f   30df     movlw	0xdf                                 MOVLW    ~GPIO_LED            ; All GPIO as an input except LED GPIO.
 000020   0086     movwf	0x6                                  MOVWF    TRISB
